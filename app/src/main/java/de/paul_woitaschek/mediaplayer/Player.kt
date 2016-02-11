@@ -31,12 +31,12 @@ import java.io.IOException
  *
  * @author Paul Woitaschek
  */
-class Player(private val type: Type, context: Context, val loggingEnabled: Boolean) {
+class Player(private val type: Type, context: Context, val logging: Logging = Player.Logging.DISABLED) {
 
-    private val log = Log(loggingEnabled, Player::class.java.simpleName)
+    private val log = Log(logging.enabled, Player::class.java.simpleName)
 
     private val mediaPlayer = if (type == Type.CUSTOM) {
-        CustomMediaPlayer(loggingEnabled, context)
+        CustomMediaPlayer(logging.enabled, context)
     } else {
         AndroidPlayer(context)
     }
@@ -164,5 +164,11 @@ class Player(private val type: Type, context: Context, val loggingEnabled: Boole
     enum class Type {
         CUSTOM,
         ANDROID
+    }
+
+    enum class Logging constructor(val enabled: Boolean) {
+
+        ENABLED(true),
+        DISABLED(false)
     }
 }

@@ -31,7 +31,7 @@ import java.io.IOException
  *
  * @author Paul Woitaschek
  */
-class Player(private val type: Type, context: Context, val logging: Logging = Player.Logging.DISABLED) {
+class Player(context: Context, private val type: Type = Player.Type.ANDROID, val logging: Logging = Player.Logging.DISABLED) {
 
     private val log = Log(logging.enabled, Player::class.java.simpleName)
 

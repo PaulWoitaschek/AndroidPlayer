@@ -1,11 +1,11 @@
-package de.paul_woitaschek.mediaplayer
+package de.paul_woitaschek.mediaplayer.players
 
 import android.annotation.TargetApi
 import android.content.Context
 import android.media.*
 import android.os.Build
 import android.os.PowerManager
-import android.util.Log
+import de.paul_woitaschek.mediaplayer.logging.Log
 import rx.subjects.PublishSubject
 import java.io.IOException
 import java.util.concurrent.Executors
@@ -60,23 +60,9 @@ private fun findFormatFromChannels(numChannels: Int): Int {
  * @author Paul Woitaschek
  */
 @TargetApi(16)
-class CustomMediaPlayer(private val loggingEnabled: Boolean, private val context: Context) : MediaPlayer {
+internal class CustomMediaPlayer(private val loggingEnabled: Boolean, private val context: Context) : MediaPlayer {
 
-    private inline fun log(message: () -> String) {
-        if (loggingEnabled) {
-            val toLog = message.invoke()
-            Log.d(TAG, toLog)
-        }
-    }
-
-    private inline fun logE(throwable: Throwable, message: () -> String) {
-        if (loggingEnabled) {
-            val toLog = message.invoke()
-            Log.e(TAG, toLog, throwable)
-        }
-    }
-
-    private val TAG = CustomMediaPlayer::class.java.simpleName
+    private val log = Log(loggingEnabled, CustomMediaPlayer::class.java.simpleName)
 
     override var playbackSpeed = 1.0f
 
@@ -209,7 +195,7 @@ class CustomMediaPlayer(private val loggingEnabled: Boolean, private val context
         isDecoding = false
         if (continuing && (sawInputEOS || sawOutputEOS)) {
             state = State.PLAYBACK_COMPLETED
-            log { "State changed to $state " }
+            log.d { "State changed to $state " }
             val t = Thread(Runnable {
                 completionSubject.onNext(Unit)
                 stayAwake(false)
@@ -224,7 +210,7 @@ class CustomMediaPlayer(private val loggingEnabled: Boolean, private val context
 
 
     override fun start() {
-        log { "start called in state $state" }
+        log.d { "start called in state $state" }
         if (state == State.PLAYBACK_COMPLETED) {
             try {
                 initStream()
@@ -237,7 +223,7 @@ class CustomMediaPlayer(private val loggingEnabled: Boolean, private val context
         when (state) {
             State.PREPARED, State.PLAYBACK_COMPLETED -> {
                 state = State.STARTED
-                log { "State changed to $state" }
+                log.d { "State changed to $state" }
                 continuing = true
                 track!!.play()
                 decode()
@@ -247,7 +233,7 @@ class CustomMediaPlayer(private val loggingEnabled: Boolean, private val context
             }
             State.PAUSED -> {
                 state = State.STARTED
-                log { "State changed to: $state with path=$path" }
+                log.d { "State changed to: $state with path=$path" }
                 synchronized (decoderLock) {
                     decoderLock.notify()
                 }
@@ -260,7 +246,7 @@ class CustomMediaPlayer(private val loggingEnabled: Boolean, private val context
 
 
     override fun reset() {
-        log { "reset called in state $state" }
+        log.d { "reset called in state $state" }
         stayAwake(false)
         lock.lock()
         try {
@@ -275,12 +261,12 @@ class CustomMediaPlayer(private val loggingEnabled: Boolean, private val context
                     }
                 }
             } catch (e: InterruptedException) {
-                logE(e) { "Interrupted in reset while waiting for decoder thread to stop." }
+                log.e(e) { "Interrupted in reset while waiting for decoder thread to stop." }
             }
 
             if (codec != null) {
                 codec!!.release()
-                log { "releasing codec" }
+                log.d { "releasing codec" }
                 codec = null
             }
             if (extractor != null) {
@@ -292,7 +278,7 @@ class CustomMediaPlayer(private val loggingEnabled: Boolean, private val context
                 track = null
             }
             state = State.IDLE
-            log { "State changed to $state" }
+            log.d { "State changed to $state" }
         } finally {
             lock.unlock()
         }
@@ -301,12 +287,12 @@ class CustomMediaPlayer(private val loggingEnabled: Boolean, private val context
 
     @Throws(IOException::class)
     override fun prepare() {
-        log { "prepare called in state $state " }
+        log.d { "prepare called in state $state " }
         when (state) {
             State.INITIALIZED, State.STOPPED -> {
                 initStream()
                 state = State.PREPARED
-                log { "State changed to $state" }
+                log.d { "State changed to $state" }
             }
             else -> error("prepare")
         }
@@ -355,17 +341,17 @@ class CustomMediaPlayer(private val loggingEnabled: Boolean, private val context
 
 
     override fun pause() {
-        log { "pause called" }
+        log.d { "pause called" }
         when (state) {
             State.PLAYBACK_COMPLETED -> {
                 state = State.PAUSED
-                log { "State changed to $state" }
+                log.d { "State changed to $state" }
                 stayAwake(false)
             }
             State.STARTED, State.PAUSED -> {
                 track!!.pause()
                 state = State.PAUSED
-                log { "State changed to $state" }
+                log.d { "State changed to $state" }
                 stayAwake(false)
             }
             else -> error("pause")
@@ -374,12 +360,12 @@ class CustomMediaPlayer(private val loggingEnabled: Boolean, private val context
 
 
     override fun setDataSource(path: String) {
-        log { "setDataSource $path" }
+        log.d { "setDataSource $path" }
         when (state) {
             State.IDLE -> {
                 this.path = path
                 state = State.INITIALIZED
-                log { "State changed to $state " }
+                log.d { "State changed to $state " }
             }
             else -> error("setDataSource")
         }
@@ -394,7 +380,7 @@ class CustomMediaPlayer(private val loggingEnabled: Boolean, private val context
 
     @Throws(IOException::class, IllegalArgumentException::class)
     private fun initStream() {
-        log { "initStream called in state $state" }
+        log.d { "initStream called in state $state" }
         lock.lock()
         try {
             extractor = MediaExtractor()
@@ -416,8 +402,8 @@ class CustomMediaPlayer(private val loggingEnabled: Boolean, private val context
             val mime = oFormat.getString(MediaFormat.KEY_MIME)
             duration = (oFormat.getLong(MediaFormat.KEY_DURATION) / 1000).toInt();
 
-            log { "Sample rate $sampleRate" }
-            log { "Mime type $mime" }
+            log.d { "Sample rate $sampleRate" }
+            log.d { "Mime type $mime" }
             initDevice(sampleRate, channelCount)
             extractor!!.selectTrack(trackNum)
             codec = MediaCodec.createDecoderByType(mime)
@@ -428,7 +414,7 @@ class CustomMediaPlayer(private val loggingEnabled: Boolean, private val context
     }
 
     private fun error(methodName: String) {
-        log { "Error in $methodName at state=$state" }
+        log.d { "Error in $methodName at state=$state" }
         state = State.ERROR
         stayAwake(false)
     }
@@ -443,7 +429,7 @@ class CustomMediaPlayer(private val loggingEnabled: Boolean, private val context
      */
     @Throws(IOException::class)
     private fun initDevice(sampleRate: Int, numChannels: Int) {
-        log { "initDevice called in state $state" }
+        log.d { "initDevice called in state $state" }
         lock.lock()
         try {
             val format = findFormatFromChannels(numChannels)
@@ -451,7 +437,7 @@ class CustomMediaPlayer(private val loggingEnabled: Boolean, private val context
                     AudioFormat.ENCODING_PCM_16BIT)
 
             if (minSize == AudioTrack.ERROR || minSize == AudioTrack.ERROR_BAD_VALUE) {
-                log { "minSize=$minSize" }
+                log.d { "minSize=$minSize" }
                 throw IOException("getMinBufferSize returned " + minSize)
             }
             track = AudioTrack(AudioManager.STREAM_MUSIC, sampleRate, format,
@@ -474,7 +460,7 @@ class CustomMediaPlayer(private val loggingEnabled: Boolean, private val context
     }
 
     private fun decode() {
-        log { "decode called ins state=$state" }
+        log.d { "decode called ins state=$state" }
         executor.execute(decoderRunnable)
     }
 

@@ -1,6 +1,7 @@
-package de.paul_woitaschek.mediaplayer
+package de.paul_woitaschek.mediaplayer.players
 
 import android.content.Context
+import android.media.MediaPlayer
 import rx.subjects.PublishSubject
 
 /**
@@ -8,9 +9,9 @@ import rx.subjects.PublishSubject
  *
  * @author Paul Woitaschek
  */
-class AndroidPlayer(private val context: Context) : MediaPlayer {
+internal class AndroidPlayer(private val context: Context) : de.paul_woitaschek.mediaplayer.players.MediaPlayer {
 
-    private val player = android.media.MediaPlayer()
+    private val player = MediaPlayer()
 
     init {
         player.setOnErrorListener { mediaPlayer, i, j ->

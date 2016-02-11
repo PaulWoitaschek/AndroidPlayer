@@ -1,4 +1,4 @@
-package de.paul_woitaschek.mediaplayer
+package de.paul_woitaschek.mediaplayer.players
 
 import rx.Observable
 
@@ -8,7 +8,7 @@ import rx.Observable
  *
  * @author Paul Woitaschek
  */
-interface MediaPlayer {
+internal interface MediaPlayer {
 
     fun setDataSource(path: String)
 

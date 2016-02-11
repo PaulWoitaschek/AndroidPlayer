@@ -5,9 +5,9 @@
 
    This file is licensed under the Apache 2.0 license.
 */
-package de.paul_woitaschek.mediaplayer;
+package de.paul_woitaschek.mediaplayer.players;
 
-public class Sonic {
+class Sonic {
 
     private static final int SONIC_MIN_PITCH = 65;
     private static final int SONIC_MAX_PITCH = 400;
@@ -43,6 +43,67 @@ public class Sonic {
     private int minDiff;
     private int maxDiff;
 
+    // Create a sonic stream.
+    public Sonic(
+            int sampleRate,
+            int numChannels) {
+        allocateStreamBuffers(sampleRate, numChannels);
+        speed = 1.0f;
+        pitch = 1.0f;
+        volume = 1.0f;
+        rate = 1.0f;
+        oldRatePosition = 0;
+        newRatePosition = 0;
+        useChordPitch = false;
+        quality = 0;
+    }
+
+    // Allocate stream buffers.
+    private void allocateStreamBuffers(
+            int sampleRate,
+            int numChannels) {
+        minPeriod = sampleRate / SONIC_MAX_PITCH;
+        maxPeriod = sampleRate / SONIC_MIN_PITCH;
+        maxRequired = 2 * maxPeriod;
+        inputBufferSize = maxRequired;
+        inputBuffer = new short[maxRequired * numChannels];
+        outputBufferSize = maxRequired;
+        outputBuffer = new short[maxRequired * numChannels];
+        pitchBufferSize = maxRequired;
+        pitchBuffer = new short[maxRequired * numChannels];
+        downSampleBuffer = new short[maxRequired];
+        this.sampleRate = sampleRate;
+        this.numChannels = numChannels;
+        oldRatePosition = 0;
+        newRatePosition = 0;
+        prevPeriod = 0;
+    }
+
+    // This is a non-stream oriented interface to just change the speed of a sound sample
+    public static int changeFloatSpeed(
+            float samples[],
+            int numSamples,
+            float speed,
+            float pitch,
+            float rate,
+            float volume,
+            boolean useChordPitch,
+            int sampleRate,
+            int numChannels) {
+        Sonic stream = new Sonic(sampleRate, numChannels);
+
+        stream.setSpeed(speed);
+        stream.setPitch(pitch);
+        stream.setRate(rate);
+        stream.setVolume(volume);
+        stream.setChordPitch(useChordPitch);
+        stream.writeFloatToStream(samples, numSamples);
+        stream.flushStream();
+        numSamples = stream.samplesAvailable();
+        stream.readFloatFromStream(samples, numSamples);
+        return numSamples;
+    }
+
     // Resize the array.
     private short[] resize(
             short[] oldArray,
@@ -53,16 +114,6 @@ public class Sonic {
 
         System.arraycopy(oldArray, 0, newArray, 0, length);
         return newArray;
-    }
-
-    // Move samples from one array to another.  May move samples down within an array, but not up.
-    private void move(
-            short dest[],
-            int destPos,
-            short source[],
-            int sourcePos,
-            int numSamples) {
-        System.arraycopy(source, sourcePos * numChannels, dest, destPos * numChannels, numSamples * numChannels);
     }
 
     // Scale the samples by the factor.
@@ -152,42 +203,6 @@ public class Sonic {
     public void setVolume(
             float volume) {
         this.volume = volume;
-    }
-
-    // Allocate stream buffers.
-    private void allocateStreamBuffers(
-            int sampleRate,
-            int numChannels) {
-        minPeriod = sampleRate / SONIC_MAX_PITCH;
-        maxPeriod = sampleRate / SONIC_MIN_PITCH;
-        maxRequired = 2 * maxPeriod;
-        inputBufferSize = maxRequired;
-        inputBuffer = new short[maxRequired * numChannels];
-        outputBufferSize = maxRequired;
-        outputBuffer = new short[maxRequired * numChannels];
-        pitchBufferSize = maxRequired;
-        pitchBuffer = new short[maxRequired * numChannels];
-        downSampleBuffer = new short[maxRequired];
-        this.sampleRate = sampleRate;
-        this.numChannels = numChannels;
-        oldRatePosition = 0;
-        newRatePosition = 0;
-        prevPeriod = 0;
-    }
-
-    // Create a sonic stream.
-    public Sonic(
-            int sampleRate,
-            int numChannels) {
-        allocateStreamBuffers(sampleRate, numChannels);
-        speed = 1.0f;
-        pitch = 1.0f;
-        volume = 1.0f;
-        rate = 1.0f;
-        oldRatePosition = 0;
-        newRatePosition = 0;
-        useChordPitch = false;
-        quality = 0;
     }
 
     // Get the sample rate of the stream.
@@ -385,6 +400,16 @@ public class Sonic {
         move(outputBuffer, 0, outputBuffer, numSamples, remainingSamples);
         numOutputSamples = remainingSamples;
         return numSamples;
+    }
+
+    // Move samples from one array to another.  May move samples down within an array, but not up.
+    private void move(
+            short dest[],
+            int destPos,
+            short source[],
+            int sourcePos,
+            int numSamples) {
+        System.arraycopy(source, sourcePos * numChannels, dest, destPos * numChannels, numSamples * numChannels);
     }
 
     // Read unsigned byte data out of the stream.  Sometimes no data will be available, and zero
@@ -745,7 +770,6 @@ public class Sonic {
         removePitchSamples(position);
     }
 
-
     // Skip over a pitch period, and copy period/speed samples to the output
     private int skipPitchPeriod(
             short samples[],
@@ -877,31 +901,6 @@ public class Sonic {
             int numBytes) {
         addBytesToInputBuffer(inBuffer, numBytes);
         processStreamInput();
-    }
-
-    // This is a non-stream oriented interface to just change the speed of a sound sample
-    public static int changeFloatSpeed(
-            float samples[],
-            int numSamples,
-            float speed,
-            float pitch,
-            float rate,
-            float volume,
-            boolean useChordPitch,
-            int sampleRate,
-            int numChannels) {
-        Sonic stream = new Sonic(sampleRate, numChannels);
-
-        stream.setSpeed(speed);
-        stream.setPitch(pitch);
-        stream.setRate(rate);
-        stream.setVolume(volume);
-        stream.setChordPitch(useChordPitch);
-        stream.writeFloatToStream(samples, numSamples);
-        stream.flushStream();
-        numSamples = stream.samplesAvailable();
-        stream.readFloatFromStream(samples, numSamples);
-        return numSamples;
     }
 
     /* This is a non-stream oriented interface to just change the speed of a sound sample */

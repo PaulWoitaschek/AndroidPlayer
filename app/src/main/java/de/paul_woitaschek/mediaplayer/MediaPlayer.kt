@@ -1,6 +1,5 @@
 package de.paul_woitaschek.mediaplayer
 
-import android.content.Context
 import rx.Observable
 
 
@@ -25,7 +24,7 @@ interface MediaPlayer {
 
     fun reset()
 
-    fun setWakeMode(context: Context, mode: Int)
+    fun setWakeMode(mode: Int)
 
     val currentPosition: Int
 

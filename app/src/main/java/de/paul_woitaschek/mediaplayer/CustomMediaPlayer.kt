@@ -60,7 +60,7 @@ private fun findFormatFromChannels(numChannels: Int): Int {
  * @author Paul Woitaschek
  */
 @TargetApi(16)
-class CustomMediaPlayer constructor(private val loggingEnabled: Boolean) : MediaPlayer {
+class CustomMediaPlayer(private val loggingEnabled: Boolean, private val context: Context) : MediaPlayer {
 
     private inline fun log(message: () -> String) {
         if (loggingEnabled) {
@@ -386,7 +386,7 @@ class CustomMediaPlayer constructor(private val loggingEnabled: Boolean) : Media
     }
 
 
-    override fun setWakeMode(context: Context, mode: Int) {
+    override fun setWakeMode(mode: Int) {
         val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
         wakeLock = pm.newWakeLock(mode, "CustomPlayer")
         wakeLock!!.setReferenceCounted(false)

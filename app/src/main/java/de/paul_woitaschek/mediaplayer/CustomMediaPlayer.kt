@@ -5,8 +5,8 @@ import android.content.Context
 import android.media.*
 import android.os.Build
 import android.os.PowerManager
+import android.util.Log
 import rx.subjects.PublishSubject
-import timber.log.Timber
 import java.io.IOException
 import java.util.concurrent.Executors
 import java.util.concurrent.locks.ReentrantLock
@@ -60,7 +60,23 @@ private fun findFormatFromChannels(numChannels: Int): Int {
  * @author Paul Woitaschek
  */
 @TargetApi(16)
-class CustomMediaPlayer : MediaPlayer {
+class CustomMediaPlayer(private val loggingEnabled: Boolean, private val context: Context) : MediaPlayer {
+
+    private inline fun log(message: () -> String) {
+        if (loggingEnabled) {
+            val toLog = message.invoke()
+            Log.d(TAG, toLog)
+        }
+    }
+
+    private inline fun logE(throwable: Throwable, message: () -> String) {
+        if (loggingEnabled) {
+            val toLog = message.invoke()
+            Log.e(TAG, toLog, throwable)
+        }
+    }
+
+    private val TAG = CustomMediaPlayer::class.java.simpleName
 
     override var playbackSpeed = 1.0f
 
@@ -193,7 +209,7 @@ class CustomMediaPlayer : MediaPlayer {
         isDecoding = false
         if (continuing && (sawInputEOS || sawOutputEOS)) {
             state = State.PLAYBACK_COMPLETED
-            Timber.d("State changed to: " + state)
+            log { "State changed to $state " }
             val t = Thread(Runnable {
                 completionSubject.onNext(Unit)
                 stayAwake(false)
@@ -208,7 +224,7 @@ class CustomMediaPlayer : MediaPlayer {
 
 
     override fun start() {
-        Timber.v("start called in state:" + state)
+        log { "start called in state $state" }
         if (state == State.PLAYBACK_COMPLETED) {
             try {
                 initStream()
@@ -221,7 +237,7 @@ class CustomMediaPlayer : MediaPlayer {
         when (state) {
             State.PREPARED, State.PLAYBACK_COMPLETED -> {
                 state = State.STARTED
-                Timber.d("State changed to: " + state)
+                log { "State changed to $state" }
                 continuing = true
                 track!!.play()
                 decode()
@@ -231,7 +247,7 @@ class CustomMediaPlayer : MediaPlayer {
             }
             State.PAUSED -> {
                 state = State.STARTED
-                Timber.d("State changed to: $state with path=$path")
+                log { "State changed to: $state with path=$path" }
                 synchronized (decoderLock) {
                     decoderLock.notify()
                 }
@@ -244,7 +260,7 @@ class CustomMediaPlayer : MediaPlayer {
 
 
     override fun reset() {
-        Timber.v("reset called in state: " + state)
+        log { "reset called in state $state" }
         stayAwake(false)
         lock.lock()
         try {
@@ -259,12 +275,12 @@ class CustomMediaPlayer : MediaPlayer {
                     }
                 }
             } catch (e: InterruptedException) {
-                Timber.e(e, "Interrupted in reset while waiting for decoder thread to stop.")
+                logE(e) { "Interrupted in reset while waiting for decoder thread to stop." }
             }
 
             if (codec != null) {
                 codec!!.release()
-                Timber.d("releasing codec")
+                log { "releasing codec" }
                 codec = null
             }
             if (extractor != null) {
@@ -276,7 +292,7 @@ class CustomMediaPlayer : MediaPlayer {
                 track = null
             }
             state = State.IDLE
-            Timber.d("State changed to: " + state)
+            log { "State changed to $state" }
         } finally {
             lock.unlock()
         }
@@ -285,12 +301,12 @@ class CustomMediaPlayer : MediaPlayer {
 
     @Throws(IOException::class)
     override fun prepare() {
-        Timber.v("prepare called in state: " + state)
+        log { "prepare called in state $state " }
         when (state) {
             State.INITIALIZED, State.STOPPED -> {
                 initStream()
                 state = State.PREPARED
-                Timber.d("State changed to: " + state)
+                log { "State changed to $state" }
             }
             else -> error("prepare")
         }
@@ -339,17 +355,17 @@ class CustomMediaPlayer : MediaPlayer {
 
 
     override fun pause() {
-        Timber.v("pause called")
+        log { "pause called" }
         when (state) {
             State.PLAYBACK_COMPLETED -> {
                 state = State.PAUSED
-                Timber.d("State changed to: " + state)
+                log { "State changed to $state" }
                 stayAwake(false)
             }
             State.STARTED, State.PAUSED -> {
                 track!!.pause()
                 state = State.PAUSED
-                Timber.d("State changed to: " + state)
+                log { "State changed to $state" }
                 stayAwake(false)
             }
             else -> error("pause")
@@ -358,19 +374,19 @@ class CustomMediaPlayer : MediaPlayer {
 
 
     override fun setDataSource(path: String) {
-        Timber.d("setDataSource: " + path)
+        log { "setDataSource $path" }
         when (state) {
             State.IDLE -> {
                 this.path = path
                 state = State.INITIALIZED
-                Timber.d("State changed to: " + state)
+                log { "State changed to $state " }
             }
             else -> error("setDataSource")
         }
     }
 
 
-    override fun setWakeMode(context: Context, mode: Int) {
+    override fun setWakeMode(mode: Int) {
         val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
         wakeLock = pm.newWakeLock(mode, "CustomPlayer")
         wakeLock!!.setReferenceCounted(false)
@@ -378,7 +394,7 @@ class CustomMediaPlayer : MediaPlayer {
 
     @Throws(IOException::class, IllegalArgumentException::class)
     private fun initStream() {
-        Timber.v("initStream called in state=" + state)
+        log { "initStream called in state $state" }
         lock.lock()
         try {
             extractor = MediaExtractor()
@@ -400,8 +416,8 @@ class CustomMediaPlayer : MediaPlayer {
             val mime = oFormat.getString(MediaFormat.KEY_MIME)
             duration = (oFormat.getLong(MediaFormat.KEY_DURATION) / 1000).toInt();
 
-            Timber.v("Sample rate: " + sampleRate)
-            Timber.v("Mime type: " + mime)
+            log { "Sample rate $sampleRate" }
+            log { "Mime type $mime" }
             initDevice(sampleRate, channelCount)
             extractor!!.selectTrack(trackNum)
             codec = MediaCodec.createDecoderByType(mime)
@@ -412,7 +428,7 @@ class CustomMediaPlayer : MediaPlayer {
     }
 
     private fun error(methodName: String) {
-        Timber.e("Error in $methodName at state=$state")
+        log { "Error in $methodName at state=$state" }
         state = State.ERROR
         stayAwake(false)
     }
@@ -427,7 +443,7 @@ class CustomMediaPlayer : MediaPlayer {
      */
     @Throws(IOException::class)
     private fun initDevice(sampleRate: Int, numChannels: Int) {
-        Timber.d("initDevice called in state:" + state)
+        log { "initDevice called in state $state" }
         lock.lock()
         try {
             val format = findFormatFromChannels(numChannels)
@@ -435,7 +451,7 @@ class CustomMediaPlayer : MediaPlayer {
                     AudioFormat.ENCODING_PCM_16BIT)
 
             if (minSize == AudioTrack.ERROR || minSize == AudioTrack.ERROR_BAD_VALUE) {
-                Timber.e("minSize=" + minSize)
+                log { "minSize=$minSize" }
                 throw IOException("getMinBufferSize returned " + minSize)
             }
             track = AudioTrack(AudioManager.STREAM_MUSIC, sampleRate, format,
@@ -458,7 +474,7 @@ class CustomMediaPlayer : MediaPlayer {
     }
 
     private fun decode() {
-        Timber.d("decode called ins state=" + state)
+        log { "decode called ins state=$state" }
         executor.execute(decoderRunnable)
     }
 

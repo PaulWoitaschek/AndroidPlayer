@@ -8,7 +8,7 @@ import rx.subjects.PublishSubject
  *
  * @author Paul Woitaschek
  */
-class AndroidPlayer : MediaPlayer {
+class AndroidPlayer(private val context: Context) : MediaPlayer {
 
     private val player = android.media.MediaPlayer()
 
@@ -36,7 +36,7 @@ class AndroidPlayer : MediaPlayer {
         player.pause()
     }
 
-    override fun setWakeMode(context: Context, mode: Int) {
+    override fun setWakeMode(mode: Int) {
         player.setWakeMode(context, mode)
     }
 

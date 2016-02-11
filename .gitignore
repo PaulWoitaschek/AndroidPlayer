@@ -31,3 +31,4 @@ proguard/
 captures/
 
 *.iml
+.idea/

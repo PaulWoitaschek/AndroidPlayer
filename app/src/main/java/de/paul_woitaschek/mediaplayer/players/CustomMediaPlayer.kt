@@ -378,7 +378,7 @@ internal class CustomMediaPlayer(private val loggingEnabled: Boolean, private va
         wakeLock!!.setReferenceCounted(false)
     }
 
-    @Throws(IOException::class, IllegalArgumentException::class)
+    @Throws(IOException::class)
     private fun initStream() {
         log.d { "initStream called in state $state" }
         lock.lock()
@@ -394,7 +394,7 @@ internal class CustomMediaPlayer(private val loggingEnabled: Boolean, private va
             val oFormat = extractor!!.getTrackFormat(trackNum)
 
             if (!oFormat.containsKeys(MediaFormat.KEY_SAMPLE_RATE, MediaFormat.KEY_CHANNEL_COUNT, MediaFormat.KEY_MIME, MediaFormat.KEY_DURATION)) {
-                throw IllegalArgumentException("MediaFormat misses keys.")
+                throw IOException("MediaFormat misses keys.")
             }
 
             val sampleRate = oFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE)

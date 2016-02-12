@@ -24,19 +24,18 @@ import de.paul_woitaschek.mediaplayer.players.AndroidPlayer
 import de.paul_woitaschek.mediaplayer.players.CustomMediaPlayer
 import rx.subjects.PublishSubject
 import java.io.File
-import java.io.IOException
 
 /**
  * The media player.
  *
  * @author Paul Woitaschek
  */
-class Player(private val type: Type, context: Context, val loggingEnabled: Boolean) {
+class Player(context: Context, private val type: Type = Player.Type.ANDROID, val logging: Logging = Player.Logging.DISABLED) {
 
-    private val log = Log(loggingEnabled, Player::class.java.simpleName)
+    private val log = Log(logging.enabled, Player::class.java.simpleName)
 
     private val mediaPlayer = if (type == Type.CUSTOM) {
-        CustomMediaPlayer(loggingEnabled, context)
+        CustomMediaPlayer(logging.enabled, context)
     } else {
         AndroidPlayer(context)
     }
@@ -55,13 +54,7 @@ class Player(private val type: Type, context: Context, val loggingEnabled: Boole
 
         mediaPlayer.onCompletion
                 .subscribe {
-                    if (currentFile != null) {
-                        try {
-                            prepare(currentFile!!)
-                        } catch(e: IOException) {
-                            log.e(e) { "Error at re-preparing $currentFile in onCompletion." }
-                        }
-                    }
+                    state = State.NONE
                     completionSubject.onNext(Unit)
                 }
 
@@ -164,5 +157,11 @@ class Player(private val type: Type, context: Context, val loggingEnabled: Boole
     enum class Type {
         CUSTOM,
         ANDROID
+    }
+
+    enum class Logging constructor(val enabled: Boolean) {
+
+        ENABLED(true),
+        DISABLED(false)
     }
 }

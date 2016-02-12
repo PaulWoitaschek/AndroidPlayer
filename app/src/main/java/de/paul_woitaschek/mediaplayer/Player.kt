@@ -24,7 +24,6 @@ import de.paul_woitaschek.mediaplayer.players.AndroidPlayer
 import de.paul_woitaschek.mediaplayer.players.CustomMediaPlayer
 import rx.subjects.PublishSubject
 import java.io.File
-import java.io.IOException
 
 /**
  * The media player.
@@ -55,13 +54,7 @@ class Player(context: Context, private val type: Type = Player.Type.ANDROID, val
 
         mediaPlayer.onCompletion
                 .subscribe {
-                    if (currentFile != null) {
-                        try {
-                            prepare(currentFile!!)
-                        } catch(e: IOException) {
-                            log.e(e) { "Error at re-preparing $currentFile in onCompletion." }
-                        }
-                    }
+                    state = State.NONE
                     completionSubject.onNext(Unit)
                 }
 

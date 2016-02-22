@@ -8,7 +8,7 @@ import rx.Observable
  *
  * @author Paul Woitaschek
  */
-internal interface MediaPlayer {
+interface MediaPlayer {
 
     fun setDataSource(path: String)
 
@@ -16,11 +16,13 @@ internal interface MediaPlayer {
 
     fun isPlaying(): Boolean
 
-    fun prepare()
-
     fun start()
 
     fun pause()
+
+    fun prepare()
+
+    fun prepareAsync()
 
     fun reset()
 
@@ -35,4 +37,6 @@ internal interface MediaPlayer {
     val onError: Observable<Unit>
 
     val onCompletion: Observable<Unit>
+
+    val onPrepared: Observable<Unit>
 }

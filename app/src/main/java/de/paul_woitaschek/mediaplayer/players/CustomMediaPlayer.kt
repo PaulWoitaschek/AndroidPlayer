@@ -8,8 +8,10 @@ import android.os.PowerManager
 import de.paul_woitaschek.mediaplayer.logging.Log
 import rx.subjects.PublishSubject
 import java.io.IOException
+import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.thread
 
 private fun MediaFormat.containsKeys(vararg keys: String): Boolean {
     for (key in keys) {
@@ -60,7 +62,7 @@ private fun findFormatFromChannels(numChannels: Int): Int {
  * @author Paul Woitaschek
  */
 @TargetApi(16)
-internal class CustomMediaPlayer(private val loggingEnabled: Boolean, private val context: Context) : MediaPlayer {
+class CustomMediaPlayer(private val loggingEnabled: Boolean, private val context: Context) : MediaPlayer {
 
     private val log = Log(loggingEnabled, CustomMediaPlayer::class.java.simpleName)
 
@@ -76,7 +78,9 @@ internal class CustomMediaPlayer(private val loggingEnabled: Boolean, private va
     private val errorSubject = PublishSubject.create<Unit>()
     override val onError = errorSubject
     private val completionSubject = PublishSubject.create<Unit>()
+    private val preparedSubject = PublishSubject.create<Unit>()
     override val onCompletion = completionSubject
+    override val onPrepared = preparedSubject
     private val lock = ReentrantLock()
     private val decoderLock = Object()
     private val executor = Executors.newSingleThreadExecutor()
@@ -294,18 +298,33 @@ internal class CustomMediaPlayer(private val loggingEnabled: Boolean, private va
         }
     }
 
-    @Throws(IOException::class)
     override fun prepare() {
         errorInWrongState(validStatesForPrepare, "prepare")
 
-        log.d { "prepare called in state $state " }
-        when (state) {
-            State.INITIALIZED, State.STOPPED -> {
-                initStream()
-                state = State.PREPARED
-                log.d { "State changed to $state" }
-            }
-            else -> throw AssertionError("Unexpected state $state")
+        log.d { "prepare called in state $state" }
+
+        internalPrepare()
+    }
+
+    override fun prepareAsync() {
+        errorInWrongState(validStatesForPrepare, "prepareAsync")
+
+        log.d { "prepareAsync called in state $state" }
+
+        state = State.PREPARE_ASYNC
+
+        thread {
+            internalPrepare()
+        }
+    }
+
+    private fun internalPrepare() {
+        try {
+            initStream()
+            state = State.PREPARED
+            preparedSubject.onNext(Unit)
+        } catch(io: IOException) {
+            error("prepareAsync")
         }
     }
 
@@ -426,6 +445,7 @@ internal class CustomMediaPlayer(private val loggingEnabled: Boolean, private va
         log.d { "Error in $methodName at state=$state" }
         state = State.ERROR
         stayAwake(false)
+        errorSubject.onNext(Unit)
     }
 
 
@@ -473,13 +493,13 @@ internal class CustomMediaPlayer(private val loggingEnabled: Boolean, private va
         executor.execute(decoderRunnable)
     }
 
-    private val validStatesForStart = listOf(State.PREPARED, State.STARTED, State.PAUSED, State.PLAYBACK_COMPLETED)
-    private val validStatesForReset = listOf(State.IDLE, State.INITIALIZED, State.PREPARED, State.STARTED, State.PAUSED, State.STOPPED, State.PLAYBACK_COMPLETED, State.ERROR)
-    private val validStatesForPrepare = listOf(State.INITIALIZED, State.STOPPED)
-    private val validStatesForCurrentPosition = listOf(State.IDLE, State.INITIALIZED, State.PREPARED, State.STARTED, State.PAUSED, State.STOPPED, State.PLAYBACK_COMPLETED)
-    private val validStatesForPause = listOf(State.STARTED, State.PAUSED, State.PLAYBACK_COMPLETED)
-    private val validStatesForSetDataSource = listOf(State.IDLE)
-    private val validStatesForSeekTo = listOf(State.PREPARED, State.STARTED, State.PAUSED, State.PLAYBACK_COMPLETED)
+    private val validStatesForStart = EnumSet.of(State.PREPARED, State.STARTED, State.PAUSED, State.PLAYBACK_COMPLETED)
+    private val validStatesForReset = EnumSet.of(State.IDLE, State.INITIALIZED, State.PREPARED, State.STARTED, State.PAUSED, State.STOPPED, State.PLAYBACK_COMPLETED, State.ERROR)
+    private val validStatesForPrepare = EnumSet.of(State.INITIALIZED, State.STOPPED)
+    private val validStatesForCurrentPosition = EnumSet.of(State.IDLE, State.INITIALIZED, State.PREPARED, State.STARTED, State.PAUSED, State.STOPPED, State.PLAYBACK_COMPLETED)
+    private val validStatesForPause = EnumSet.of(State.STARTED, State.PAUSED, State.PLAYBACK_COMPLETED)
+    private val validStatesForSetDataSource = EnumSet.of(State.IDLE)
+    private val validStatesForSeekTo = EnumSet.of(State.PREPARED, State.STARTED, State.PAUSED, State.PLAYBACK_COMPLETED)
 
     private enum class State {
         IDLE,
@@ -490,5 +510,6 @@ internal class CustomMediaPlayer(private val loggingEnabled: Boolean, private va
         PREPARED,
         STOPPED,
         PLAYBACK_COMPLETED,
+        PREPARE_ASYNC
     }
 }

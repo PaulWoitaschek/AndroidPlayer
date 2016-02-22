@@ -208,8 +208,16 @@ internal class CustomMediaPlayer(private val loggingEnabled: Boolean, private va
         }
     }
 
+    private fun errorInWrongState(validStates: Iterable<State>, method: String) {
+        if (!validStates.contains(state)) {
+            error(method)
+            throw IllegalStateException("Must not call $method in $state")
+        }
+    }
 
     override fun start() {
+        errorInWrongState(validStatesForStart, "start")
+
         log.d { "start called in state $state" }
         if (state == State.PLAYBACK_COMPLETED) {
             try {
@@ -218,10 +226,11 @@ internal class CustomMediaPlayer(private val loggingEnabled: Boolean, private va
             } catch (e: IOException) {
                 e.printStackTrace()
                 error("start")
+                return
             }
         }
         when (state) {
-            State.PREPARED, State.PLAYBACK_COMPLETED -> {
+            State.PREPARED -> {
                 state = State.STARTED
                 log.d { "State changed to $state" }
                 continuing = true
@@ -240,12 +249,13 @@ internal class CustomMediaPlayer(private val loggingEnabled: Boolean, private va
                 track!!.play()
                 stayAwake(true)
             }
-            else -> error("start")
+            else -> throw AssertionError("Unexpected state $state")
         }
     }
 
-
     override fun reset() {
+        errorInWrongState(validStatesForReset, "reset")
+
         log.d { "reset called in state $state" }
         stayAwake(false)
         lock.lock()
@@ -284,9 +294,10 @@ internal class CustomMediaPlayer(private val loggingEnabled: Boolean, private va
         }
     }
 
-
     @Throws(IOException::class)
     override fun prepare() {
+        errorInWrongState(validStatesForPrepare, "prepare")
+
         log.d { "prepare called in state $state " }
         when (state) {
             State.INITIALIZED, State.STOPPED -> {
@@ -294,12 +305,12 @@ internal class CustomMediaPlayer(private val loggingEnabled: Boolean, private va
                 state = State.PREPARED
                 log.d { "State changed to $state" }
             }
-            else -> error("prepare")
+            else -> throw AssertionError("Unexpected state $state")
         }
     }
 
-
     override fun seekTo(to: Int) {
+        errorInWrongState(validStatesForSeekTo, "seekTo")
         when (state) {
             State.PREPARED,
             State.STARTED,
@@ -321,26 +332,24 @@ internal class CustomMediaPlayer(private val loggingEnabled: Boolean, private va
                 t.isDaemon = true
                 t.start()
             }
-            else -> error("seekTo")
+            else -> throw AssertionError("Unexpected state $state")
         }
     }
 
-
     override val currentPosition: Int
         get() {
-            when (state) {
-                State.ERROR -> {
-                    error("getCurrentPosition")
-                    errorSubject.onNext(null)
-                    return 0
-                }
-                State.IDLE -> return 0
-                else -> return (extractor!!.sampleTime / 1000).toInt()
+            errorInWrongState(validStatesForCurrentPosition, "currentPosition")
+
+            return when (state) {
+                State.IDLE -> 0
+                State.INITIALIZED, State.PREPARED, State.STARTED, State.PAUSED, State.STOPPED, State.PLAYBACK_COMPLETED -> (extractor!!.sampleTime / 1000).toInt()
+                else -> throw AssertionError("Unexpected state $state")
             }
         }
 
-
     override fun pause() {
+        errorInWrongState(validStatesForPause, "pause")
+
         log.d { "pause called" }
         when (state) {
             State.PLAYBACK_COMPLETED -> {
@@ -354,12 +363,13 @@ internal class CustomMediaPlayer(private val loggingEnabled: Boolean, private va
                 log.d { "State changed to $state" }
                 stayAwake(false)
             }
-            else -> error("pause")
+            else -> throw AssertionError("Unexpected state $state")
         }
     }
 
-
     override fun setDataSource(path: String) {
+        errorInWrongState(validStatesForSetDataSource, "setDataSource")
+
         log.d { "setDataSource $path" }
         when (state) {
             State.IDLE -> {
@@ -367,10 +377,9 @@ internal class CustomMediaPlayer(private val loggingEnabled: Boolean, private va
                 state = State.INITIALIZED
                 log.d { "State changed to $state " }
             }
-            else -> error("setDataSource")
+            else -> throw AssertionError("Unexpected state $state")
         }
     }
-
 
     override fun setWakeMode(mode: Int) {
         val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
@@ -463,6 +472,14 @@ internal class CustomMediaPlayer(private val loggingEnabled: Boolean, private va
         log.d { "decode called ins state=$state" }
         executor.execute(decoderRunnable)
     }
+
+    private val validStatesForStart = listOf(State.PREPARED, State.STARTED, State.PAUSED, State.PLAYBACK_COMPLETED)
+    private val validStatesForReset = listOf(State.IDLE, State.INITIALIZED, State.PREPARED, State.STARTED, State.PAUSED, State.STOPPED, State.PLAYBACK_COMPLETED, State.ERROR)
+    private val validStatesForPrepare = listOf(State.INITIALIZED, State.STOPPED)
+    private val validStatesForCurrentPosition = listOf(State.IDLE, State.INITIALIZED, State.PREPARED, State.STARTED, State.PAUSED, State.STOPPED, State.PLAYBACK_COMPLETED)
+    private val validStatesForPause = listOf(State.STARTED, State.PAUSED, State.PLAYBACK_COMPLETED)
+    private val validStatesForSetDataSource = listOf(State.IDLE)
+    private val validStatesForSeekTo = listOf(State.PREPARED, State.STARTED, State.PAUSED, State.PLAYBACK_COMPLETED)
 
     private enum class State {
         IDLE,

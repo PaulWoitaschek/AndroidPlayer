@@ -1,9 +1,9 @@
-package de.paul_woitaschek.mediaplayer.logging
+package de.paul_woitaschek.mediaplayer.internals
 
 import android.util.Log
 
 /**
- * Created by ph1b on 11/02/16.
+ * Simple logging util
  */
 internal class Log(val loggingEnabled: Boolean, val tag: String) {
 

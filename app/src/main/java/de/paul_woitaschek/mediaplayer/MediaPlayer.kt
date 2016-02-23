@@ -1,6 +1,9 @@
-package de.paul_woitaschek.mediaplayer.players
+package de.paul_woitaschek.mediaplayer
 
+import android.net.Uri
 import rx.Observable
+import java.io.File
+import java.io.IOException
 
 
 /**
@@ -10,8 +13,6 @@ import rx.Observable
  */
 interface MediaPlayer {
 
-    fun setDataSource(path: String)
-
     fun seekTo(to: Int)
 
     fun isPlaying(): Boolean
@@ -20,9 +21,15 @@ interface MediaPlayer {
 
     fun pause()
 
-    fun prepare()
+    @Throws(IOException::class)
+    fun prepare(file: File)
 
-    fun prepareAsync()
+    fun prepareAsync(file: File)
+
+    @Throws(IOException::class)
+    fun prepare(uri: Uri)
+
+    fun prepareAsync(uri: Uri)
 
     fun reset()
 

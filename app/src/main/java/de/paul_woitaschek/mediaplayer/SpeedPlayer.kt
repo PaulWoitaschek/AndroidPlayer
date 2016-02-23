@@ -1,46 +1,19 @@
-package de.paul_woitaschek.mediaplayer.players
+package de.paul_woitaschek.mediaplayer
 
 import android.annotation.TargetApi
 import android.content.Context
 import android.media.*
-import android.os.Build
+import android.net.Uri
 import android.os.PowerManager
-import de.paul_woitaschek.mediaplayer.logging.Log
+import de.paul_woitaschek.mediaplayer.internals.Log
+import de.paul_woitaschek.mediaplayer.internals.Sonic
 import rx.subjects.PublishSubject
+import java.io.File
 import java.io.IOException
 import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.thread
-
-private fun MediaFormat.containsKeys(vararg keys: String): Boolean {
-    for (key in keys) {
-        if (!containsKey(key)) return false
-    }
-    return true
-}
-
-private fun Sonic.availableBytes(): Int {
-    return numChannels * samplesAvailable() * 2
-}
-
-private fun findFormatFromChannels(numChannels: Int): Int {
-    return when (numChannels) {
-        1 -> AudioFormat.CHANNEL_OUT_MONO
-        2 -> AudioFormat.CHANNEL_OUT_STEREO
-        3 -> AudioFormat.CHANNEL_OUT_STEREO or AudioFormat.CHANNEL_OUT_FRONT_CENTER
-        4 -> AudioFormat.CHANNEL_OUT_QUAD
-        5 -> AudioFormat.CHANNEL_OUT_QUAD or AudioFormat.CHANNEL_OUT_FRONT_CENTER
-        6 -> AudioFormat.CHANNEL_OUT_5POINT1
-        7 -> AudioFormat.CHANNEL_OUT_5POINT1 or AudioFormat.CHANNEL_OUT_BACK_CENTER
-        8 -> if (Build.VERSION.SDK_INT >= 23) {
-            AudioFormat.CHANNEL_OUT_7POINT1_SURROUND;
-        } else {
-            -1;
-        }
-        else -> -1 // Error
-    }
-}
 
 /**
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -62,9 +35,9 @@ private fun findFormatFromChannels(numChannels: Int): Int {
  * @author Paul Woitaschek
  */
 @TargetApi(16)
-class CustomMediaPlayer(private val loggingEnabled: Boolean, private val context: Context) : MediaPlayer {
+class SpeedPlayer(private val loggingEnabled: Boolean, private val context: Context) : MediaPlayer {
 
-    private val log = Log(loggingEnabled, CustomMediaPlayer::class.java.simpleName)
+    private val log = Log(loggingEnabled, SpeedPlayer::class.java.simpleName)
 
     override var playbackSpeed = 1.0f
 
@@ -90,6 +63,7 @@ class CustomMediaPlayer(private val loggingEnabled: Boolean, private val context
     private var extractor: MediaExtractor? = null
     private var codec: MediaCodec? = null
     private var path: String? = null
+    private var uri: Uri? = null
 
     @Volatile private var continuing = false
     @Volatile private var isDecoding = false
@@ -298,26 +272,6 @@ class CustomMediaPlayer(private val loggingEnabled: Boolean, private val context
         }
     }
 
-    override fun prepare() {
-        errorInWrongState(validStatesForPrepare, "prepare")
-
-        log.d { "prepare called in state $state" }
-
-        internalPrepare()
-    }
-
-    override fun prepareAsync() {
-        errorInWrongState(validStatesForPrepare, "prepareAsync")
-
-        log.d { "prepareAsync called in state $state" }
-
-        state = State.PREPARE_ASYNC
-
-        thread {
-            internalPrepare()
-        }
-    }
-
     private fun internalPrepare() {
         try {
             initStream()
@@ -361,7 +315,7 @@ class CustomMediaPlayer(private val loggingEnabled: Boolean, private val context
 
             return when (state) {
                 State.IDLE -> 0
-                State.INITIALIZED, State.PREPARED, State.STARTED, State.PAUSED, State.STOPPED, State.PLAYBACK_COMPLETED -> (extractor!!.sampleTime / 1000).toInt()
+                State.PREPARED, State.STARTED, State.PAUSED, State.STOPPED, State.PLAYBACK_COMPLETED -> (extractor!!.sampleTime / 1000).toInt()
                 else -> throw AssertionError("Unexpected state $state")
             }
         }
@@ -386,17 +340,49 @@ class CustomMediaPlayer(private val loggingEnabled: Boolean, private val context
         }
     }
 
-    override fun setDataSource(path: String) {
-        errorInWrongState(validStatesForSetDataSource, "setDataSource")
+    override fun prepare(file: File) {
+        errorInWrongState(validStatesForPrepare, "prepare")
+        log.d { "prepare $file" }
 
-        log.d { "setDataSource $path" }
-        when (state) {
-            State.IDLE -> {
-                this.path = path
-                state = State.INITIALIZED
-                log.d { "State changed to $state " }
-            }
-            else -> throw AssertionError("Unexpected state $state")
+        this.path = file.absolutePath
+        this.uri = null
+
+        internalPrepare()
+    }
+
+    override fun prepareAsync(file: File) {
+        errorInWrongState(validStatesForPrepare, "prepareAsync")
+        log.d { "prepareAsync $file" }
+
+        this.path = file.absolutePath
+        this.uri = null
+
+        state = State.PREPARING
+        thread(isDaemon = true) {
+            internalPrepare()
+        }
+    }
+
+    override fun prepare(uri: Uri) {
+        errorInWrongState(validStatesForPrepare, "prepare")
+        log.d { "prepare $uri" }
+
+        this.path = null
+        this.uri = uri
+
+        internalPrepare()
+    }
+
+    override fun prepareAsync(uri: Uri) {
+        errorInWrongState(validStatesForPrepare, "prepareAsync")
+        log.d { "prepareAsync $uri" }
+
+        this.path = null
+        this.uri = null
+
+        state = State.PREPARING
+        thread(isDaemon = true) {
+            internalPrepare()
         }
     }
 
@@ -414,6 +400,8 @@ class CustomMediaPlayer(private val loggingEnabled: Boolean, private val context
             extractor = MediaExtractor()
             if (path != null) {
                 extractor!!.setDataSource(path)
+            } else if (uri != null) {
+                extractor!!.setDataSource(context, uri!!, null)
             } else {
                 error("initStream")
                 throw IOException("Error at initializing stream")
@@ -494,22 +482,20 @@ class CustomMediaPlayer(private val loggingEnabled: Boolean, private val context
     }
 
     private val validStatesForStart = EnumSet.of(State.PREPARED, State.STARTED, State.PAUSED, State.PLAYBACK_COMPLETED)
-    private val validStatesForReset = EnumSet.of(State.IDLE, State.INITIALIZED, State.PREPARED, State.STARTED, State.PAUSED, State.STOPPED, State.PLAYBACK_COMPLETED, State.ERROR)
-    private val validStatesForPrepare = EnumSet.of(State.INITIALIZED, State.STOPPED)
-    private val validStatesForCurrentPosition = EnumSet.of(State.IDLE, State.INITIALIZED, State.PREPARED, State.STARTED, State.PAUSED, State.STOPPED, State.PLAYBACK_COMPLETED)
+    private val validStatesForReset = EnumSet.of(State.IDLE, State.PREPARED, State.STARTED, State.PAUSED, State.STOPPED, State.PLAYBACK_COMPLETED, State.ERROR)
+    private val validStatesForPrepare = EnumSet.of(State.IDLE)
+    private val validStatesForCurrentPosition = EnumSet.of(State.IDLE, State.PREPARED, State.STARTED, State.PAUSED, State.STOPPED, State.PLAYBACK_COMPLETED)
     private val validStatesForPause = EnumSet.of(State.STARTED, State.PAUSED, State.PLAYBACK_COMPLETED)
-    private val validStatesForSetDataSource = EnumSet.of(State.IDLE)
     private val validStatesForSeekTo = EnumSet.of(State.PREPARED, State.STARTED, State.PAUSED, State.PLAYBACK_COMPLETED)
 
     private enum class State {
         IDLE,
         ERROR,
-        INITIALIZED,
         STARTED,
         PAUSED,
         PREPARED,
+        PREPARING,
         STOPPED,
-        PLAYBACK_COMPLETED,
-        PREPARE_ASYNC
+        PLAYBACK_COMPLETED
     }
 }

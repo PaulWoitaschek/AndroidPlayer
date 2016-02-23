@@ -1,4 +1,4 @@
-package de.paul_woitaschek.mediaplayer.players
+package de.paul_woitaschek.mediaplayer
 
 import android.net.Uri
 import rx.Observable

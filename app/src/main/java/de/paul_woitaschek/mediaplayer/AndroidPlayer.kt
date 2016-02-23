@@ -1,4 +1,4 @@
-package de.paul_woitaschek.mediaplayer.players
+package de.paul_woitaschek.mediaplayer
 
 import android.content.Context
 import android.media.MediaPlayer
@@ -11,7 +11,7 @@ import java.io.File
  *
  * @author Paul Woitaschek
  */
-class AndroidPlayer(private val context: Context) : de.paul_woitaschek.mediaplayer.players.MediaPlayer {
+class AndroidPlayer(private val context: Context) : de.paul_woitaschek.mediaplayer.MediaPlayer {
 
     private val player = MediaPlayer()
 

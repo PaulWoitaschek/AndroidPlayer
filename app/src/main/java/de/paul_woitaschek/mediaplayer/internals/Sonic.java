@@ -5,9 +5,9 @@
 
    This file is licensed under the Apache 2.0 license.
 */
-package de.paul_woitaschek.mediaplayer.players;
+package de.paul_woitaschek.mediaplayer.internals;
 
-class Sonic {
+public class Sonic {
 
     private static final int SONIC_MIN_PITCH = 65;
     private static final int SONIC_MAX_PITCH = 400;
@@ -58,27 +58,6 @@ class Sonic {
         quality = 0;
     }
 
-    // Allocate stream buffers.
-    private void allocateStreamBuffers(
-            int sampleRate,
-            int numChannels) {
-        minPeriod = sampleRate / SONIC_MAX_PITCH;
-        maxPeriod = sampleRate / SONIC_MIN_PITCH;
-        maxRequired = 2 * maxPeriod;
-        inputBufferSize = maxRequired;
-        inputBuffer = new short[maxRequired * numChannels];
-        outputBufferSize = maxRequired;
-        outputBuffer = new short[maxRequired * numChannels];
-        pitchBufferSize = maxRequired;
-        pitchBuffer = new short[maxRequired * numChannels];
-        downSampleBuffer = new short[maxRequired];
-        this.sampleRate = sampleRate;
-        this.numChannels = numChannels;
-        oldRatePosition = 0;
-        newRatePosition = 0;
-        prevPeriod = 0;
-    }
-
     // This is a non-stream oriented interface to just change the speed of a sound sample
     public static int changeFloatSpeed(
             float samples[],
@@ -102,6 +81,27 @@ class Sonic {
         numSamples = stream.samplesAvailable();
         stream.readFloatFromStream(samples, numSamples);
         return numSamples;
+    }
+
+    // Allocate stream buffers.
+    private void allocateStreamBuffers(
+            int sampleRate,
+            int numChannels) {
+        minPeriod = sampleRate / SONIC_MAX_PITCH;
+        maxPeriod = sampleRate / SONIC_MIN_PITCH;
+        maxRequired = 2 * maxPeriod;
+        inputBufferSize = maxRequired;
+        inputBuffer = new short[maxRequired * numChannels];
+        outputBufferSize = maxRequired;
+        outputBuffer = new short[maxRequired * numChannels];
+        pitchBufferSize = maxRequired;
+        pitchBuffer = new short[maxRequired * numChannels];
+        downSampleBuffer = new short[maxRequired];
+        this.sampleRate = sampleRate;
+        this.numChannels = numChannels;
+        oldRatePosition = 0;
+        newRatePosition = 0;
+        prevPeriod = 0;
     }
 
     // Resize the array.

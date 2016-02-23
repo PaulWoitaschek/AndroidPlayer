@@ -2,14 +2,16 @@ package de.paul_woitaschek.mediaplayer.players
 
 import android.content.Context
 import android.media.MediaPlayer
+import android.net.Uri
 import rx.subjects.PublishSubject
+import java.io.File
 
 /**
  * Delegates to android.media.MediaPlayer.
  *
  * @author Paul Woitaschek
  */
- class AndroidPlayer(private val context: Context) : de.paul_woitaschek.mediaplayer.players.MediaPlayer {
+class AndroidPlayer(private val context: Context) : de.paul_woitaschek.mediaplayer.players.MediaPlayer {
 
     private val player = MediaPlayer()
 
@@ -49,11 +51,25 @@ import rx.subjects.PublishSubject
 
     override var playbackSpeed: Float = 1F
 
-    override fun setDataSource(path: String) = player.setDataSource(path)
+    override fun prepare(file: File) {
+        player.setDataSource(file.absolutePath)
+        player.prepare()
+    }
 
-    override fun prepare() = player.prepare()
+    override fun prepareAsync(file: File) {
+        player.setDataSource(file.absolutePath)
+        player.prepareAsync()
+    }
 
-    override fun prepareAsync() = player.prepareAsync()
+    override fun prepare(uri: Uri) {
+        player.setDataSource(context, uri)
+        player.prepare()
+    }
+
+    override fun prepareAsync(uri: Uri) {
+        player.setDataSource(context, uri)
+        player.prepareAsync()
+    }
 
     override fun reset() = player.reset()
 

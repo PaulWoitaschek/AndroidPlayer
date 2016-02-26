@@ -4,6 +4,8 @@ import android.annotation.TargetApi
 import android.content.Context
 import android.media.*
 import android.net.Uri
+import android.os.Handler
+import android.os.Looper
 import android.os.PowerManager
 import de.paul_woitaschek.mediaplayer.internals.Log
 import de.paul_woitaschek.mediaplayer.internals.Sonic
@@ -14,6 +16,7 @@ import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.thread
+import kotlin.concurrent.withLock
 
 /**
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -48,12 +51,16 @@ class SpeedPlayer(private val loggingEnabled: Boolean, private val context: Cont
         return state == State.STARTED
     }
 
+    private val handler = Handler(context.mainLooper)
+
     private val errorSubject = PublishSubject.create<Unit>()
-    override val onError = errorSubject
     private val completionSubject = PublishSubject.create<Unit>()
     private val preparedSubject = PublishSubject.create<Unit>()
+
+    override val onError = errorSubject
     override val onCompletion = completionSubject
     override val onPrepared = preparedSubject
+
     private val lock = ReentrantLock()
     private val decoderLock = Object()
     private val executor = Executors.newSingleThreadExecutor()
@@ -72,9 +79,10 @@ class SpeedPlayer(private val loggingEnabled: Boolean, private val context: Cont
     @Suppress("DEPRECATION")
     private val decoderRunnable = Runnable {
         isDecoding = true
-        codec!!.start()
-        val inputBuffers = codec!!.inputBuffers
-        var outputBuffers = codec!!.outputBuffers
+        val codec = codec!!
+        codec.start()
+        val inputBuffers = codec.inputBuffers
+        var outputBuffers = codec.outputBuffers
         var sawInputEOS = false
         var sawOutputEOS = false
         while (!sawInputEOS && !sawOutputEOS && continuing) {
@@ -89,12 +97,11 @@ class SpeedPlayer(private val loggingEnabled: Boolean, private val context: Cont
 
                 continue
             }
-            if (sonic != null) {
-                sonic!!.speed = playbackSpeed
-                sonic!!.pitch = 1f
-            }
+            val sonic = sonic!!
+            sonic.speed = playbackSpeed
+            sonic.pitch = 1f
 
-            val inputBufIndex = codec!!.dequeueInputBuffer(200)
+            val inputBufIndex = codec.dequeueInputBuffer(200)
             if (inputBufIndex >= 0) {
                 val dstBuf = inputBuffers[inputBufIndex]
                 var sampleSize = extractor!!.readSampleData(dstBuf, 0)
@@ -105,14 +112,14 @@ class SpeedPlayer(private val loggingEnabled: Boolean, private val context: Cont
                 } else {
                     presentationTimeUs = extractor!!.sampleTime
                 }
-                codec!!.queueInputBuffer(
+                codec.queueInputBuffer(
                         inputBufIndex,
                         0,
                         sampleSize,
                         presentationTimeUs,
                         if (sawInputEOS) MediaCodec.BUFFER_FLAG_END_OF_STREAM else 0)
                 if (flushCodec) {
-                    codec!!.flush()
+                    codec.flush()
                     flushCodec = false
                 }
                 if (!sawInputEOS) {
@@ -123,41 +130,41 @@ class SpeedPlayer(private val loggingEnabled: Boolean, private val context: Cont
             var modifiedSamples = ByteArray(info.size)
             var res: Int
             do {
-                res = codec!!.dequeueOutputBuffer(info, 200)
+                res = codec.dequeueOutputBuffer(info, 200)
                 if (res >= 0) {
                     val chunk = ByteArray(info.size)
                     outputBuffers[res].get(chunk)
                     outputBuffers[res].clear()
                     if (chunk.size > 0) {
-                        sonic!!.writeBytesToStream(chunk, chunk.size)
+                        sonic.writeBytesToStream(chunk, chunk.size)
                     } else {
-                        sonic!!.flushStream()
+                        sonic.flushStream()
                     }
-                    val available = sonic!!.availableBytes()
+                    val available = sonic.availableBytes()
                     if (available > 0) {
                         if (modifiedSamples.size < available) {
                             modifiedSamples = ByteArray(available)
                         }
-                        sonic!!.readBytesFromStream(modifiedSamples, available)
+                        sonic.readBytesFromStream(modifiedSamples, available)
                         track!!.write(modifiedSamples, 0, available)
                     }
-                    codec!!.releaseOutputBuffer(res, false)
+                    codec.releaseOutputBuffer(res, false)
                     if (info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0) {
                         sawOutputEOS = true
                     }
                 } else if (res == MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED) {
-                    outputBuffers = codec!!.outputBuffers
+                    outputBuffers = codec.outputBuffers
                 } else if (res == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
                     track!!.stop()
                     lock.lock()
                     try {
                         track!!.release()
-                        val oFormat = codec!!.outputFormat
+                        val oFormat = codec.outputFormat
 
                         initDevice(
                                 oFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE),
                                 oFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT))
-                        outputBuffers = codec!!.outputBuffers
+                        outputBuffers = codec.outputBuffers
                         track!!.play()
                     } catch (e: IOException) {
                         e.printStackTrace()
@@ -168,18 +175,17 @@ class SpeedPlayer(private val loggingEnabled: Boolean, private val context: Cont
             } while (res == MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED || res == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED)
         }
 
-        codec!!.stop()
+        codec.stop()
         track!!.stop()
         isDecoding = false
         if (continuing && (sawInputEOS || sawOutputEOS)) {
             state = State.PLAYBACK_COMPLETED
             log.d { "State changed to $state " }
-            val t = Thread(Runnable {
+
+            handler.post {
                 completionSubject.onNext(Unit)
                 stayAwake(false)
-            })
-            t.isDaemon = true
-            t.start()
+            }
         }
         synchronized (decoderLock) {
             decoderLock.notifyAll()
@@ -236,8 +242,7 @@ class SpeedPlayer(private val loggingEnabled: Boolean, private val context: Cont
 
         log.d { "reset called in state $state" }
         stayAwake(false)
-        lock.lock()
-        try {
+        lock.withLock {
             continuing = false
             try {
                 if (state != State.PLAYBACK_COMPLETED) {
@@ -267,8 +272,6 @@ class SpeedPlayer(private val loggingEnabled: Boolean, private val context: Cont
             }
             state = State.IDLE
             log.d { "State changed to $state" }
-        } finally {
-            lock.unlock()
         }
     }
 
@@ -276,7 +279,7 @@ class SpeedPlayer(private val loggingEnabled: Boolean, private val context: Cont
         try {
             initStream()
             state = State.PREPARED
-            preparedSubject.onNext(Unit)
+            doOnMain { preparedSubject.onNext(Unit) }
         } catch(io: IOException) {
             error("prepareAsync")
         }
@@ -289,21 +292,16 @@ class SpeedPlayer(private val loggingEnabled: Boolean, private val context: Cont
             State.STARTED,
             State.PAUSED,
             State.PLAYBACK_COMPLETED -> {
-                val t = Thread(Runnable {
-                    lock.lock()
-                    try {
+                thread(isDaemon = true) {
+                    lock.withLock {
                         if (track != null) {
                             track!!.flush()
                             flushCodec = true
                             val internalTo = to.toLong() * 1000
                             extractor!!.seekTo(internalTo, MediaExtractor.SEEK_TO_CLOSEST_SYNC)
                         }
-                    } finally {
-                        lock.unlock()
                     }
-                })
-                t.isDaemon = true
-                t.start()
+                }
             }
             else -> throw AssertionError("Unexpected state $state")
         }
@@ -395,8 +393,7 @@ class SpeedPlayer(private val loggingEnabled: Boolean, private val context: Cont
     @Throws(IOException::class)
     private fun initStream() {
         log.d { "initStream called in state $state" }
-        lock.lock()
-        try {
+        lock.withLock {
             extractor = MediaExtractor()
             if (path != null) {
                 extractor!!.setDataSource(path)
@@ -424,8 +421,6 @@ class SpeedPlayer(private val loggingEnabled: Boolean, private val context: Cont
             extractor!!.selectTrack(trackNum)
             codec = MediaCodec.createDecoderByType(mime)
             codec!!.configure(oFormat, null, null, 0)
-        } finally {
-            lock.unlock()
         }
     }
 
@@ -433,7 +428,15 @@ class SpeedPlayer(private val loggingEnabled: Boolean, private val context: Cont
         log.d { "Error in $methodName at state=$state" }
         state = State.ERROR
         stayAwake(false)
-        errorSubject.onNext(Unit)
+        doOnMain { errorSubject.onNext(Unit) }
+    }
+
+    private inline fun doOnMain(crossinline func: () -> Any) {
+        if (Thread.currentThread() == Looper.getMainLooper().thread) {
+            func()
+        } else {
+            handler.post { func() }
+        }
     }
 
 
@@ -447,8 +450,7 @@ class SpeedPlayer(private val loggingEnabled: Boolean, private val context: Cont
     @Throws(IOException::class)
     private fun initDevice(sampleRate: Int, numChannels: Int) {
         log.d { "initDevice called in state $state" }
-        lock.lock()
-        try {
+        lock.withLock {
             val format = findFormatFromChannels(numChannels)
             val minSize = AudioTrack.getMinBufferSize(sampleRate, format,
                     AudioFormat.ENCODING_PCM_16BIT)
@@ -461,8 +463,6 @@ class SpeedPlayer(private val loggingEnabled: Boolean, private val context: Cont
                     AudioFormat.ENCODING_PCM_16BIT, minSize * 4,
                     AudioTrack.MODE_STREAM)
             sonic = Sonic(sampleRate, numChannels)
-        } finally {
-            lock.unlock()
         }
     }
 

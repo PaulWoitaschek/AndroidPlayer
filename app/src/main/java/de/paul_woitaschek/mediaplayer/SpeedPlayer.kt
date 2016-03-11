@@ -194,7 +194,7 @@ class SpeedPlayer(private val loggingEnabled: Boolean, private val context: Cont
 
     private fun errorInWrongState(validStates: Iterable<State>, method: String) {
         if (!validStates.contains(state)) {
-            error(method)
+            error { method }
             throw IllegalStateException("Must not call $method in $state")
         }
     }
@@ -208,8 +208,7 @@ class SpeedPlayer(private val loggingEnabled: Boolean, private val context: Cont
                 initStream()
                 state = State.PREPARED
             } catch (e: IOException) {
-                e.printStackTrace()
-                error("start")
+                error(e) { "start" }
                 return
             }
         }
@@ -275,14 +274,11 @@ class SpeedPlayer(private val loggingEnabled: Boolean, private val context: Cont
         }
     }
 
+    @Throws(IOException::class)
     private fun internalPrepare() {
-        try {
-            initStream()
-            state = State.PREPARED
-            doOnMain { preparedSubject.onNext(Unit) }
-        } catch(io: IOException) {
-            error("prepareAsync")
-        }
+        initStream()
+        state = State.PREPARED
+        doOnMain { preparedSubject.onNext(Unit) }
     }
 
     override fun seekTo(to: Int) {
@@ -338,6 +334,7 @@ class SpeedPlayer(private val loggingEnabled: Boolean, private val context: Cont
         }
     }
 
+    @Throws(IOException::class)
     override fun prepare(file: File) {
         errorInWrongState(validStatesForPrepare, "prepare")
         log.d { "prepare $file" }
@@ -345,7 +342,28 @@ class SpeedPlayer(private val loggingEnabled: Boolean, private val context: Cont
         this.path = file.absolutePath
         this.uri = null
 
-        internalPrepare()
+        try {
+            internalPrepare()
+        } catch(e: IOException) {
+            error(e) { "prepare" }
+            throw IOException(e)
+        }
+    }
+
+    @Throws(IOException::class)
+    override fun prepare(uri: Uri) {
+        errorInWrongState(validStatesForPrepare, "prepare")
+        log.d { "prepare $uri" }
+
+        this.path = null
+        this.uri = uri
+
+        try {
+            internalPrepare()
+        } catch(e: IOException) {
+            error(e) { "prepare" }
+            throw IOException(e)
+        }
     }
 
     override fun prepareAsync(file: File) {
@@ -357,18 +375,12 @@ class SpeedPlayer(private val loggingEnabled: Boolean, private val context: Cont
 
         state = State.PREPARING
         thread(isDaemon = true) {
-            internalPrepare()
+            try {
+                internalPrepare()
+            } catch(e: IOException) {
+                error(e) { "prepareAsync" }
+            }
         }
-    }
-
-    override fun prepare(uri: Uri) {
-        errorInWrongState(validStatesForPrepare, "prepare")
-        log.d { "prepare $uri" }
-
-        this.path = null
-        this.uri = uri
-
-        internalPrepare()
     }
 
     override fun prepareAsync(uri: Uri) {
@@ -380,7 +392,11 @@ class SpeedPlayer(private val loggingEnabled: Boolean, private val context: Cont
 
         state = State.PREPARING
         thread(isDaemon = true) {
-            internalPrepare()
+            try {
+                internalPrepare()
+            } catch(e: IOException) {
+                error(e) { "prepareAsync" }
+            }
         }
     }
 
@@ -400,7 +416,7 @@ class SpeedPlayer(private val loggingEnabled: Boolean, private val context: Cont
             } else if (uri != null) {
                 extractor!!.setDataSource(context, uri!!, null)
             } else {
-                error("initStream")
+                error { "initStream" }
                 throw IOException("Error at initializing stream")
             }
             val trackNum = 0
@@ -424,8 +440,12 @@ class SpeedPlayer(private val loggingEnabled: Boolean, private val context: Cont
         }
     }
 
-    private fun error(methodName: String) {
-        log.d { "Error in $methodName at state=$state" }
+    private inline fun error(throwable: Throwable? = null, methodName: () -> String) {
+        if (throwable == null) {
+            log.e { "Error in ${methodName()} at state=$state" }
+        } else {
+            log.e(throwable) { "Error in ${methodName()} at state=$state" }
+        }
         state = State.ERROR
         stayAwake(false)
         doOnMain { errorSubject.onNext(Unit) }

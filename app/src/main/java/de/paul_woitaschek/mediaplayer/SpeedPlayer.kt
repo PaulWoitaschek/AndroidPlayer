@@ -38,7 +38,7 @@ import kotlin.concurrent.withLock
  * @author Paul Woitaschek
  */
 @TargetApi(16)
-class SpeedPlayer(private val loggingEnabled: Boolean, private val context: Context) : MediaPlayer {
+class SpeedPlayer(private val context: Context, private val loggingEnabled: Boolean = false) : MediaPlayer {
 
     private val log = Log(loggingEnabled, SpeedPlayer::class.java.simpleName)
 

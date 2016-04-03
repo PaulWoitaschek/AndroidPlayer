@@ -38,7 +38,7 @@ import kotlin.concurrent.withLock
  * @author Paul Woitaschek
  */
 @TargetApi(16)
-class SpeedPlayer(private val loggingEnabled: Boolean, private val context: Context) : MediaPlayer {
+class SpeedPlayer(private val context: Context, private val loggingEnabled: Boolean = false) : MediaPlayer {
 
     private val log = Log(loggingEnabled, SpeedPlayer::class.java.simpleName)
 
@@ -53,13 +53,20 @@ class SpeedPlayer(private val loggingEnabled: Boolean, private val context: Cont
 
     private val handler = Handler(context.mainLooper)
 
+    // error
     private val errorSubject = PublishSubject.create<Unit>()
-    private val completionSubject = PublishSubject.create<Unit>()
-    private val preparedSubject = PublishSubject.create<Unit>()
+    private val errorObservable = errorSubject.asObservable()
+    override val onError = errorObservable
 
-    override val onError = errorSubject
-    override val onCompletion = completionSubject
-    override val onPrepared = preparedSubject
+    // completion
+    private val completionSubject = PublishSubject.create<Unit>()
+    private val completionObservable = completionSubject.asObservable()
+    override val onCompletion = completionObservable
+
+    // prepared
+    private val preparedSubject = PublishSubject.create<Unit>()
+    private val preparedObservable = preparedSubject.asObservable()
+    override val onPrepared = preparedObservable
 
     private val lock = ReentrantLock()
     private val decoderLock = Object()
@@ -309,7 +316,7 @@ class SpeedPlayer(private val loggingEnabled: Boolean, private val context: Cont
 
             return when (state) {
                 State.IDLE -> 0
-                State.PREPARED, State.STARTED, State.PAUSED, State.STOPPED, State.PLAYBACK_COMPLETED -> (extractor!!.sampleTime / 1000).toInt()
+                State.PREPARED, State.STARTED, State.PAUSED, State.PLAYBACK_COMPLETED -> (extractor!!.sampleTime / 1000).toInt()
                 else -> throw AssertionError("Unexpected state $state")
             }
         }
@@ -502,9 +509,9 @@ class SpeedPlayer(private val loggingEnabled: Boolean, private val context: Cont
     }
 
     private val validStatesForStart = EnumSet.of(State.PREPARED, State.STARTED, State.PAUSED, State.PLAYBACK_COMPLETED)
-    private val validStatesForReset = EnumSet.of(State.IDLE, State.PREPARED, State.STARTED, State.PAUSED, State.STOPPED, State.PLAYBACK_COMPLETED, State.ERROR)
+    private val validStatesForReset = EnumSet.of(State.IDLE, State.PREPARED, State.STARTED, State.PAUSED, State.PLAYBACK_COMPLETED, State.ERROR)
     private val validStatesForPrepare = EnumSet.of(State.IDLE)
-    private val validStatesForCurrentPosition = EnumSet.of(State.IDLE, State.PREPARED, State.STARTED, State.PAUSED, State.STOPPED, State.PLAYBACK_COMPLETED)
+    private val validStatesForCurrentPosition = EnumSet.of(State.IDLE, State.PREPARED, State.STARTED, State.PAUSED, State.PLAYBACK_COMPLETED)
     private val validStatesForPause = EnumSet.of(State.STARTED, State.PAUSED, State.PLAYBACK_COMPLETED)
     private val validStatesForSeekTo = EnumSet.of(State.PREPARED, State.STARTED, State.PAUSED, State.PLAYBACK_COMPLETED)
 
@@ -515,7 +522,6 @@ class SpeedPlayer(private val loggingEnabled: Boolean, private val context: Cont
         PAUSED,
         PREPARED,
         PREPARING,
-        STOPPED,
         PLAYBACK_COMPLETED
     }
 }

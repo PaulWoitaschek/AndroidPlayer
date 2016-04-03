@@ -16,15 +16,12 @@ class AndroidPlayer(private val context: Context) : de.paul_woitaschek.mediaplay
     private val player = MediaPlayer()
 
     private val errorSubject = PublishSubject.create<Unit>()
-
     private val errorObservable = errorSubject.asObservable()
 
     private val preparedSubject = PublishSubject.create<Unit>()
-
     private val preparedObservable = preparedSubject.asObservable()
 
     private val completionSubject = PublishSubject.create<Unit>()
-
     private val completionObservable = completionSubject.asObservable()
 
     init {

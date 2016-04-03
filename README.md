@@ -5,17 +5,37 @@ It also supports setting a custom playback speed for Android `API >= 16` by usin
 **This library is still in beta phase and its API is a subject to changes.**
 
 # Get started
-You just create a new instance of the player and devine the type. Then you just prepare a file and play it.
+The player is defined through a simple interface called `MediaPlayer` which works like the Android MediaPlayer. There is one little difference: Instead of `setDataSource(String)` and `prepare()` it simplifies that by skipping that state so you call `prepare(File)` directly.
 ```kotlin
-val mediaPlayer = Player(Player.Type.CUSTOM, c, true)
+val mediaPlayer: MediaPlayer = SpeedPlayer(context)
 mediaPlayer.prepare(File("/storage/sdcard/test.mp3"))
-mediaPlayer.playing = true
+mediaPlayer.start()
 ```
 For events you can simply subscribe to its `Observable`s:
 ```kotlin
-mediaPlayer.completionObservable.subscribe { Log.i("Player", "Player completed") }
-mediaPlayer.errorObservable.subscribe { Log.i("Player", "There was an error") }
+mediaPlayer.onCompletion.subscribe { Log.i("Player", "Player completed") }
+mediaPlayer.onError.subscribe { Log.i("Player", "There was an error") }
+mediaPlayer.onPrepared.subscribe { Log.i("Player", "Player prepared!") }
 ```
+
+# Installation
+Top gradle:
+```gradle
+allprojects {
+		repositories {
+			...
+			maven { url "https://jitpack.io" }
+		}
+}
+```
+build.gradle:
+```gradle
+dependencies {
+    compile 'com.github.PaulWoitaschek:AndroidPlayer:0.010'
+}
+```
+
+
 
 # License
 ```

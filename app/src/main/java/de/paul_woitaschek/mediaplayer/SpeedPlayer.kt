@@ -316,7 +316,7 @@ class SpeedPlayer(private val context: Context, private val loggingEnabled: Bool
 
             return when (state) {
                 State.IDLE -> 0
-                State.PREPARED, State.STARTED, State.PAUSED, State.STOPPED, State.PLAYBACK_COMPLETED -> (extractor!!.sampleTime / 1000).toInt()
+                State.PREPARED, State.STARTED, State.PAUSED, State.PLAYBACK_COMPLETED -> (extractor!!.sampleTime / 1000).toInt()
                 else -> throw AssertionError("Unexpected state $state")
             }
         }
@@ -509,9 +509,9 @@ class SpeedPlayer(private val context: Context, private val loggingEnabled: Bool
     }
 
     private val validStatesForStart = EnumSet.of(State.PREPARED, State.STARTED, State.PAUSED, State.PLAYBACK_COMPLETED)
-    private val validStatesForReset = EnumSet.of(State.IDLE, State.PREPARED, State.STARTED, State.PAUSED, State.STOPPED, State.PLAYBACK_COMPLETED, State.ERROR)
+    private val validStatesForReset = EnumSet.of(State.IDLE, State.PREPARED, State.STARTED, State.PAUSED, State.PLAYBACK_COMPLETED, State.ERROR)
     private val validStatesForPrepare = EnumSet.of(State.IDLE)
-    private val validStatesForCurrentPosition = EnumSet.of(State.IDLE, State.PREPARED, State.STARTED, State.PAUSED, State.STOPPED, State.PLAYBACK_COMPLETED)
+    private val validStatesForCurrentPosition = EnumSet.of(State.IDLE, State.PREPARED, State.STARTED, State.PAUSED, State.PLAYBACK_COMPLETED)
     private val validStatesForPause = EnumSet.of(State.STARTED, State.PAUSED, State.PLAYBACK_COMPLETED)
     private val validStatesForSeekTo = EnumSet.of(State.PREPARED, State.STARTED, State.PAUSED, State.PLAYBACK_COMPLETED)
 
@@ -522,7 +522,6 @@ class SpeedPlayer(private val context: Context, private val loggingEnabled: Bool
         PAUSED,
         PREPARED,
         PREPARING,
-        STOPPED,
         PLAYBACK_COMPLETED
     }
 }

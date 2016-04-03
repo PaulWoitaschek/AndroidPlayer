@@ -53,13 +53,20 @@ class SpeedPlayer(private val context: Context, private val loggingEnabled: Bool
 
     private val handler = Handler(context.mainLooper)
 
+    // error
     private val errorSubject = PublishSubject.create<Unit>()
-    private val completionSubject = PublishSubject.create<Unit>()
-    private val preparedSubject = PublishSubject.create<Unit>()
+    private val errorObservable = errorSubject.asObservable()
+    override val onError = errorObservable
 
-    override val onError = errorSubject
-    override val onCompletion = completionSubject
-    override val onPrepared = preparedSubject
+    // completion
+    private val completionSubject = PublishSubject.create<Unit>()
+    private val completionObservable = completionSubject.asObservable()
+    override val onCompletion = completionObservable
+
+    // prepared
+    private val preparedSubject = PublishSubject.create<Unit>()
+    private val preparedObservable = preparedSubject.asObservable()
+    override val onPrepared = preparedObservable
 
     private val lock = ReentrantLock()
     private val decoderLock = Object()

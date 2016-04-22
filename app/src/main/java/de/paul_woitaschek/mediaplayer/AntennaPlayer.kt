@@ -2,8 +2,8 @@ package de.paul_woitaschek.mediaplayer
 
 import android.content.Context
 import android.net.Uri
-import org.antennapod.audio.SonicAudioPlayer
-import rx.subjects.PublishSubject
+import android.os.Handler
+import android.os.Looper
 import java.io.File
 
 /**
@@ -14,17 +14,24 @@ import java.io.File
 class AntennaPlayer(private val context: Context) : MediaPlayer {
 
     private val player: SonicAudioPlayer
+    private val handler = Handler(context.mainLooper)
+
+    private inline fun postOnMain(crossinline task: () -> Unit) {
+        if (Thread.currentThread() == Looper.getMainLooper().thread) {
+            task()
+        } else handler.post { task() }
+    }
 
     init {
         val owning = org.antennapod.audio.MediaPlayer(context)
         player = SonicAudioPlayer(owning, context)
 
         owning.setOnErrorListener { mediaPlayer, i, j ->
-            errorSubject.onNext(Unit)
+            postOnMain { errorSubject.onNext(Unit) }
             false
         }
-        owning.setOnCompletionListener { completionSubject.onNext(Unit) }
-        owning.setOnPreparedListener { preparedSubject.onNext(Unit) }
+        owning.setOnCompletionListener { postOnMain { completionSubject.onNext(Unit) } }
+        owning.setOnPreparedListener { postOnMain { preparedSubject.onNext(Unit) } }
     }
 
 

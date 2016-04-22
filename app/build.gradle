@@ -9,8 +9,8 @@ android {
     defaultConfig {
         minSdkVersion 9
         targetSdkVersion 23
-        versionCode 8
-        versionName "0.010"
+        versionCode 9
+        versionName "0.011"
     }
     buildTypes {
         release {
@@ -22,5 +22,6 @@ android {
 
 dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
-    compile "io.reactivex:rxjava:1.1.2"
+    compile "io.reactivex:rxjava:1.1.3"
+    compile "com.github.AntennaPod:AntennaPod-AudioPlayer:v1.0.16"
 }

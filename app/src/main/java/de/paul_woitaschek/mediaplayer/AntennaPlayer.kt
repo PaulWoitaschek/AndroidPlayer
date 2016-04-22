@@ -4,6 +4,8 @@ import android.content.Context
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
+import org.antennapod.audio.SonicAudioPlayer
+import rx.subjects.PublishSubject
 import java.io.File
 
 /**

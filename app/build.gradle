@@ -22,5 +22,4 @@ android {
 dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
     compile 'io.reactivex.rxjava2:rxjava:2.0.5'
-    compile "com.github.AntennaPod:AntennaPod-AudioPlayer:v1.0.16"
 }

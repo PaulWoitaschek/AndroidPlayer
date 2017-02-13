@@ -1,7 +1,6 @@
 package de.paul_woitaschek.mediaplayer
 
 import android.net.Uri
-import io.reactivex.Observable
 import java.io.File
 import java.io.IOException
 
@@ -41,9 +40,9 @@ interface MediaPlayer {
 
   var playbackSpeed: Float
 
-  val onError: Observable<Unit>
+  var onError: (() -> Unit)?
 
-  val onCompletion: Observable<Unit>
+  var onCompletion: (() -> Unit)?
 
-  val onPrepared: Observable<Unit>
+  var onPrepared: (() -> Unit)?
 }

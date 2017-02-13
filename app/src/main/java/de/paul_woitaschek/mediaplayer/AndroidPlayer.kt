@@ -4,7 +4,6 @@ import android.content.Context
 import android.media.PlaybackParams
 import android.net.Uri
 import android.os.Build
-import io.reactivex.subjects.PublishSubject
 import java.io.File
 import android.media.MediaPlayer as AndroidMediaPlayer
 
@@ -15,24 +14,19 @@ import android.media.MediaPlayer as AndroidMediaPlayer
  */
 class AndroidPlayer(private val context: Context) : MediaPlayer {
 
+  override var onError: (() -> Unit)? = null
+  override var onCompletion: (() -> Unit)? = null
+  override var onPrepared: (() -> Unit)? = null
+
   private val player = AndroidMediaPlayer()
-
-  private val errorSubject = PublishSubject.create<Unit>()
-  private val errorObservable = errorSubject.hide()!!
-
-  private val preparedSubject = PublishSubject.create<Unit>()
-  private val preparedObservable = preparedSubject.hide()!!
-
-  private val completionSubject = PublishSubject.create<Unit>()
-  private val completionObservable = completionSubject.hide()!!
 
   init {
     player.setOnErrorListener { mediaPlayer, i, j ->
-      errorSubject.onNext(Unit)
+      onError?.invoke()
       false
     }
-    player.setOnCompletionListener { completionSubject.onNext(Unit) }
-    player.setOnPreparedListener { preparedSubject.onNext(Unit) }
+    player.setOnCompletionListener { onCompletion?.invoke() }
+    player.setOnPreparedListener { onPrepared?.invoke() }
   }
 
   override fun seekTo(to: Int) = player.seekTo(to)
@@ -84,10 +78,4 @@ class AndroidPlayer(private val context: Context) : MediaPlayer {
 
   override val currentPosition: Int
     get() = player.currentPosition
-
-  override val onError = errorObservable
-
-  override val onCompletion = completionObservable
-
-  override val onPrepared = preparedObservable
 }

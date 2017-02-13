@@ -8,7 +8,6 @@ import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
 import de.paul_woitaschek.mediaplayer.internals.Sonic
-import io.reactivex.subjects.PublishSubject
 import java.io.File
 import java.io.IOException
 import java.util.*
@@ -39,6 +38,9 @@ import kotlin.concurrent.withLock
 @TargetApi(16)
 class SpeedPlayer(private val context: Context) : MediaPlayer {
 
+  override var onError: (() -> Unit)? = null
+  override var onCompletion: (() -> Unit)? = null
+  override var onPrepared: (() -> Unit)? = null
   override var playbackSpeed = 1.0f
 
   override var duration: Int = 0
@@ -47,18 +49,6 @@ class SpeedPlayer(private val context: Context) : MediaPlayer {
   override fun isPlaying() = state == State.STARTED
 
   private val handler = Handler(context.mainLooper)
-
-  // error
-  private val errorSubject = PublishSubject.create<Unit>()
-  override val onError = errorSubject.hide()!!
-
-  // completion
-  private val completionSubject = PublishSubject.create<Unit>()
-  override val onCompletion = completionSubject.hide()!!
-
-  // prepared
-  private val preparedSubject = PublishSubject.create<Unit>()
-  override val onPrepared = preparedSubject.hide()!!
 
   private val lock = ReentrantLock()
   private val decoderLock = Object()
@@ -180,7 +170,7 @@ class SpeedPlayer(private val context: Context) : MediaPlayer {
       state = State.PLAYBACK_COMPLETED
 
       handler.post {
-        completionSubject.onNext(Unit)
+        onCompletion?.invoke()
         stayAwake(false)
       }
     }
@@ -268,7 +258,7 @@ class SpeedPlayer(private val context: Context) : MediaPlayer {
   private fun internalPrepare() {
     initStream()
     state = State.PREPARED
-    doOnMain { preparedSubject.onNext(Unit) }
+    doOnMain { onPrepared?.invoke() }
   }
 
   override fun seekTo(to: Int) {
@@ -419,10 +409,10 @@ class SpeedPlayer(private val context: Context) : MediaPlayer {
   private fun error() {
     state = State.ERROR
     stayAwake(false)
-    doOnMain { errorSubject.onNext(Unit) }
+    doOnMain { onError?.invoke() }
   }
 
-  private inline fun doOnMain(crossinline func: () -> Any) {
+  private inline fun doOnMain(crossinline func: () -> Unit) {
     if (Thread.currentThread() == Looper.getMainLooper().thread) {
       func()
     } else {

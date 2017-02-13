@@ -44,9 +44,7 @@ class SpeedPlayer(private val context: Context) : MediaPlayer {
   override var duration: Int = 0
     private set
 
-  override fun isPlaying(): Boolean {
-    return state == State.STARTED
-  }
+  override fun isPlaying() = state == State.STARTED
 
   private val handler = Handler(context.mainLooper)
 
@@ -70,7 +68,6 @@ class SpeedPlayer(private val context: Context) : MediaPlayer {
   private var sonic: Sonic? = null
   private var extractor: MediaExtractor? = null
   private var codec: MediaCodec? = null
-  private var path: String? = null
   private var uri: Uri? = null
 
   @Volatile private var continuing = false
@@ -328,8 +325,7 @@ class SpeedPlayer(private val context: Context) : MediaPlayer {
   override fun prepare(file: File) {
     errorInWrongState(validStatesForPrepare, "prepare")
 
-    this.path = file.absolutePath
-    this.uri = null
+    this.uri = Uri.fromFile(file)
 
     try {
       internalPrepare()
@@ -343,7 +339,6 @@ class SpeedPlayer(private val context: Context) : MediaPlayer {
   override fun prepare(uri: Uri) {
     errorInWrongState(validStatesForPrepare, "prepare")
 
-    this.path = null
     this.uri = uri
 
     try {
@@ -357,8 +352,7 @@ class SpeedPlayer(private val context: Context) : MediaPlayer {
   override fun prepareAsync(file: File) {
     errorInWrongState(validStatesForPrepare, "prepareAsync")
 
-    this.path = file.absolutePath
-    this.uri = null
+    this.uri = Uri.fromFile(file)
 
     state = State.PREPARING
     thread(isDaemon = true) {
@@ -373,8 +367,7 @@ class SpeedPlayer(private val context: Context) : MediaPlayer {
   override fun prepareAsync(uri: Uri) {
     errorInWrongState(validStatesForPrepare, "prepareAsync")
 
-    this.path = null
-    this.uri = null
+    this.uri = uri
 
     state = State.PREPARING
     thread(isDaemon = true) {
@@ -396,9 +389,7 @@ class SpeedPlayer(private val context: Context) : MediaPlayer {
   private fun initStream() {
     lock.withLock {
       extractor = MediaExtractor()
-      if (path != null) {
-        extractor!!.setDataSource(path)
-      } else if (uri != null) {
+      if (uri != null) {
         extractor!!.setDataSource(context, uri!!, null)
       } else {
         error()
@@ -439,14 +430,6 @@ class SpeedPlayer(private val context: Context) : MediaPlayer {
     }
   }
 
-
-  /**
-   * Initializes the basic audio track to be able to playback.
-
-   * @param sampleRate  The sample rate of the track
-   * *
-   * @param numChannels The number of channels available in the track.
-   */
   @Throws(IOException::class)
   private fun initDevice(sampleRate: Int, numChannels: Int) {
     lock.withLock {

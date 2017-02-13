@@ -20,13 +20,13 @@ player.onPrepared.subscribe { Log.i("Player", "Player prepared!") }
 
 # Installation
 build.gradle:
-```gradle
+```groovy
 dependencies {
     compile 'com.github.PaulWoitaschek:AndroidPlayer:0.010'
 }
 ```
 Top gradle:
-```gradle
+```groovy
 allprojects {
     repositories {
         ...

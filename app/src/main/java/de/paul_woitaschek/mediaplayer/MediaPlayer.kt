@@ -1,7 +1,7 @@
 package de.paul_woitaschek.mediaplayer
 
 import android.net.Uri
-import rx.Observable
+import io.reactivex.Observable
 import java.io.File
 import java.io.IOException
 

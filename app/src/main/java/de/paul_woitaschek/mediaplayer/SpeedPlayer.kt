@@ -8,7 +8,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
 import de.paul_woitaschek.mediaplayer.internals.Sonic
-import rx.subjects.PublishSubject
+import io.reactivex.subjects.PublishSubject
 import java.io.File
 import java.io.IOException
 import java.util.*
@@ -52,18 +52,15 @@ class SpeedPlayer(private val context: Context) : MediaPlayer {
 
   // error
   private val errorSubject = PublishSubject.create<Unit>()
-  private val errorObservable = errorSubject.asObservable()!!
-  override val onError = errorObservable
+  override val onError = errorSubject.hide()!!
 
   // completion
   private val completionSubject = PublishSubject.create<Unit>()
-  private val completionObservable = completionSubject.asObservable()!!
-  override val onCompletion = completionObservable
+  override val onCompletion = completionSubject.hide()!!
 
   // prepared
   private val preparedSubject = PublishSubject.create<Unit>()
-  private val preparedObservable = preparedSubject.asObservable()!!
-  override val onPrepared = preparedObservable
+  override val onPrepared = preparedSubject.hide()!!
 
   private val lock = ReentrantLock()
   private val decoderLock = Object()

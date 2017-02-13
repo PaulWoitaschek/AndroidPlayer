@@ -3,7 +3,7 @@ package de.paul_woitaschek.mediaplayer
 import android.content.Context
 import android.media.MediaPlayer
 import android.net.Uri
-import rx.subjects.PublishSubject
+import io.reactivex.subjects.PublishSubject
 import java.io.File
 
 /**
@@ -16,13 +16,13 @@ class AndroidPlayer(private val context: Context) : de.paul_woitaschek.mediaplay
   private val player = MediaPlayer()
 
   private val errorSubject = PublishSubject.create<Unit>()
-  private val errorObservable = errorSubject.asObservable()!!
+  private val errorObservable = errorSubject.hide()!!
 
   private val preparedSubject = PublishSubject.create<Unit>()
-  private val preparedObservable = preparedSubject.asObservable()!!
+  private val preparedObservable = preparedSubject.hide()!!
 
   private val completionSubject = PublishSubject.create<Unit>()
-  private val completionObservable = completionSubject.asObservable()!!
+  private val completionObservable = completionSubject.hide()!!
 
   init {
     player.setOnErrorListener { mediaPlayer, i, j ->

@@ -1,19 +1,21 @@
 package de.paul_woitaschek.mediaplayer
 
 import android.content.Context
-import android.media.MediaPlayer
+import android.media.PlaybackParams
 import android.net.Uri
+import android.os.Build
 import io.reactivex.subjects.PublishSubject
 import java.io.File
+import android.media.MediaPlayer as AndroidMediaPlayer
 
 /**
- * Delegates to android.media.MediaPlayer.
+ * Delegates to android.media.MediaPlayer. Playback speed will be available from api 23 on
  *
  * @author Paul Woitaschek
  */
-class AndroidPlayer(private val context: Context) : de.paul_woitaschek.mediaplayer.MediaPlayer {
+class AndroidPlayer(private val context: Context) : MediaPlayer {
 
-  private val player = MediaPlayer()
+  private val player = AndroidMediaPlayer()
 
   private val errorSubject = PublishSubject.create<Unit>()
   private val errorObservable = errorSubject.hide()!!
@@ -46,7 +48,17 @@ class AndroidPlayer(private val context: Context) : de.paul_woitaschek.mediaplay
   override val duration: Int
     get() = player.duration
 
-  override var playbackSpeed: Float = 1F
+  override var playbackSpeed: Float
+    get() = if (Build.VERSION.SDK_INT >= 23) {
+      player.playbackParams?.speed ?: 1F
+    } else 1F
+    set(value) {
+      if (Build.VERSION.SDK_INT >= 23) {
+        player.playbackParams = PlaybackParams().apply {
+          speed = value
+        }
+      }
+    }
 
   override fun prepare(file: File) {
     player.setDataSource(file.absolutePath)

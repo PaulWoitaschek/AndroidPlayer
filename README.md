@@ -1,4 +1,6 @@
 # Android Speed Player
+[![CI Status](https://circleci.com/gh/PaulWoitaschek/AndroidPlayer.svg?&style=shield&circle-token=1454603ba135969d542753f427043ee815f626f9)](https://circleci.com/gh/PaulWoitaschek/AndroidPlayer)
+
 This player is a MediaPlayer abstraction for Android. It mimics but simplifies the Android [MediaPlayer](https://developer.android.com/reference/android/media/MediaPlayer.html) through the usage of [RxJava](https://github.com/ReactiveX/RxJava) and [Kotlin](https://kotlinlang.org/).
 It also supports setting a custom playback speed for Android `API >= 16` by using a custom implementation based on [Prestissimo](https://github.com/TheRealFalcon/Prestissimo) with heavy modifications.
 

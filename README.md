@@ -1,5 +1,9 @@
 # Android Speed Player
-This player is a MediaPlayer abstraction for Android. It mimics but simplifies the Android [MediaPlayer](https://developer.android.com/reference/android/media/MediaPlayer.html) through the usage of [RxJava](https://github.com/ReactiveX/RxJava) and [Kotlin](https://kotlinlang.org/).
+[![CI Status](https://circleci.com/gh/PaulWoitaschek/AndroidPlayer.svg?&style=shield&circle-token=1454603ba135969d542753f427043ee815f626f9)](https://circleci.com/gh/PaulWoitaschek/AndroidPlayer)
+
+This player is a MediaPlayer abstraction for Android. It mimics but simplifies the Android [MediaPlayer](https://developer.android.com/reference/android/media/MediaPlayer.html) through the usage of [Kotlin](https://kotlinlang.org/).  
+As kotlin produces JVM bytecode this can be used from java too.
+
 It also supports setting a custom playback speed for Android `API >= 16` by using a custom implementation based on [Prestissimo](https://github.com/TheRealFalcon/Prestissimo) with heavy modifications.
 
 **This library is still in beta phase and its API is a subject to changes.**
@@ -11,11 +15,11 @@ val player: MediaPlayer = SpeedPlayer(context) // or AndroidPlayer(context) if <
 player.prepare(File("/storage/sdcard/test.mp3"))
 player.start()
 ```
-For events you can simply subscribe to its `Observable`s:
+For events you can simply set your listeners:
 ```kotlin
-player.onCompletion.subscribe { Log.i("Player", "Player completed") }
-player.onError.subscribe { Log.i("Player", "There was an error") }
-player.onPrepared.subscribe { Log.i("Player", "Player prepared!") }
+player.onCompletion = { Log.i("Player", "Player completed") }
+player.onError = { Log.i("Player", "There was an error") }
+player.onPrepared = { Log.i("Player", "Player prepared!") }
 ```
 
 # Installation

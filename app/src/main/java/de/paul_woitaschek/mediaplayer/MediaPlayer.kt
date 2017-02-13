@@ -13,37 +13,37 @@ import java.io.IOException
  */
 interface MediaPlayer {
 
-    fun seekTo(to: Int)
+  fun seekTo(to: Int)
 
-    fun isPlaying(): Boolean
+  fun isPlaying(): Boolean
 
-    fun start()
+  fun start()
 
-    fun pause()
+  fun pause()
 
-    @Throws(IOException::class)
-    fun prepare(file: File)
+  @Throws(IOException::class)
+  fun prepare(file: File)
 
-    fun prepareAsync(file: File)
+  fun prepareAsync(file: File)
 
-    @Throws(IOException::class)
-    fun prepare(uri: Uri)
+  @Throws(IOException::class)
+  fun prepare(uri: Uri)
 
-    fun prepareAsync(uri: Uri)
+  fun prepareAsync(uri: Uri)
 
-    fun reset()
+  fun reset()
 
-    fun setWakeMode(mode: Int)
+  fun setWakeMode(mode: Int)
 
-    val currentPosition: Int
+  val currentPosition: Int
 
-    val duration: Int
+  val duration: Int
 
-    var playbackSpeed: Float
+  var playbackSpeed: Float
 
-    val onError: Observable<Unit>
+  val onError: Observable<Unit>
 
-    val onCompletion: Observable<Unit>
+  val onCompletion: Observable<Unit>
 
-    val onPrepared: Observable<Unit>
+  val onPrepared: Observable<Unit>
 }

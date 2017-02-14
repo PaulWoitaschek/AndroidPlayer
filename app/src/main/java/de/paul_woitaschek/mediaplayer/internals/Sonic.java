@@ -7,6 +7,7 @@
 */
 package de.paul_woitaschek.mediaplayer.internals;
 
+@SuppressWarnings({"All"})
 public class Sonic {
 
   private static final int SONIC_MIN_PITCH = 65;

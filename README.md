@@ -17,9 +17,9 @@ player.start()
 ```
 For events you can simply set your listeners:
 ```kotlin
-player.onCompletion = { Log.i("Player", "Player completed") }
-player.onError = { Log.i("Player", "There was an error") }
-player.onPrepared = { Log.i("Player", "Player prepared!") }
+player.onCompletion { Log.i("Player", "Player completed") }
+player.onError { Log.i("Player", "There was an error") }
+player.onPrepared { Log.i("Player", "Player prepared!") }
 ```
 
 # Installation

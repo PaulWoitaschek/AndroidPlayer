@@ -11,6 +11,8 @@ import java.io.IOException
  */
 interface MediaPlayer {
 
+  fun audioSessionId(): Int
+
   fun isPlaying(): Boolean
 
   fun pause()

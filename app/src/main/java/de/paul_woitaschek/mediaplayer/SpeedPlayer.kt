@@ -9,6 +9,9 @@ import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
 import de.paul_woitaschek.mediaplayer.internals.Sonic
+import de.paul_woitaschek.mediaplayer.internals.availableBytes
+import de.paul_woitaschek.mediaplayer.internals.containsKeys
+import de.paul_woitaschek.mediaplayer.internals.findFormatFromChannels
 import java.io.IOException
 import java.util.*
 import java.util.concurrent.Executors
@@ -294,6 +297,8 @@ class SpeedPlayer(private val context: Context) : MediaPlayer {
         else -> throw AssertionError("Unexpected state $state")
       }
     }
+
+  override fun audioSessionId() = track?.audioSessionId ?: -1
 
   override fun pause() {
     errorInWrongState(validStatesForPause, "pause")

@@ -53,6 +53,8 @@ class AndroidPlayer(private val context: Context) : MediaPlayer {
       }
     }
 
+  override fun audioSessionId() = player.audioSessionId
+
   override fun setAudioStreamType(streamType: Int) = player.setAudioStreamType(streamType)
 
   override fun setVolume(volume: Float) {

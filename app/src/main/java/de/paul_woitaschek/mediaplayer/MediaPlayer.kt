@@ -11,11 +11,7 @@ import java.io.IOException
  */
 interface MediaPlayer {
 
-  fun seekTo(to: Int)
-
   fun isPlaying(): Boolean
-
-  fun start()
 
   fun pause()
 
@@ -26,7 +22,13 @@ interface MediaPlayer {
 
   fun reset()
 
+  fun seekTo(to: Int)
+
+  fun setVolume(volume: Float)
+
   fun setWakeMode(mode: Int)
+
+  fun start()
 
   val currentPosition: Int
 

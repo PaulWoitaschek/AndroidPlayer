@@ -53,6 +53,10 @@ class AndroidPlayer(private val context: Context) : MediaPlayer {
       }
     }
 
+  override fun setVolume(volume: Float) {
+    player.setVolume(volume, volume)
+  }
+
   override fun prepare(uri: Uri) {
     player.setDataSource(context, uri)
     player.prepare()

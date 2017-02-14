@@ -4,6 +4,7 @@ import android.annotation.TargetApi
 import android.content.Context
 import android.media.*
 import android.net.Uri
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
@@ -321,6 +322,14 @@ class SpeedPlayer(private val context: Context) : MediaPlayer {
     } catch(e: IOException) {
       error()
       throw IOException(e)
+    }
+  }
+
+  override fun setVolume(volume: Float) {
+    if (Build.VERSION.SDK_INT >= 21) track?.setVolume(volume)
+    else {
+      @Suppress("DEPRECATION")
+      track?.setStereoVolume(volume, volume)
     }
   }
 

@@ -9,10 +9,11 @@ It also supports setting a custom playback speed for Android `API >= 16` by usin
 **This library is still in beta phase and its API is a subject to changes.**
 
 # Get started
-The player is defined through a simple interface called `MediaPlayer` which works like the Android MediaPlayer. There is one little difference: Instead of `setDataSource(String)` and `prepare()` it simplifies that by skipping that state so you call `prepare(File)` directly.
+The player is defined through a simple interface called `MediaPlayer` which works like the Android MediaPlayer. There is one little difference: Instead of `setDataSource(String)` and `prepare()` it simplifies that by skipping that state so you call `prepare(Uri)` directly.
 ```kotlin
 val player: MediaPlayer = SpeedPlayer(context) // or AndroidPlayer(context) if < API 16 or >= 23
-player.prepare(File("/storage/sdcard/test.mp3"))
+val file = File("/storage/sdcard/test.mp3")
+player.prepare(Uri.fromFile(file))
 player.start()
 ```
 For events you can simply set your listeners:

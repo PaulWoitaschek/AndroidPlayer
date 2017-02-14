@@ -4,7 +4,6 @@ import android.content.Context
 import android.media.PlaybackParams
 import android.net.Uri
 import android.os.Build
-import java.io.File
 import android.media.MediaPlayer as AndroidMediaPlayer
 
 /**
@@ -53,16 +52,6 @@ class AndroidPlayer(private val context: Context) : MediaPlayer {
         }
       }
     }
-
-  override fun prepare(file: File) {
-    player.setDataSource(file.absolutePath)
-    player.prepare()
-  }
-
-  override fun prepareAsync(file: File) {
-    player.setDataSource(file.absolutePath)
-    player.prepareAsync()
-  }
 
   override fun prepare(uri: Uri) {
     player.setDataSource(context, uri)

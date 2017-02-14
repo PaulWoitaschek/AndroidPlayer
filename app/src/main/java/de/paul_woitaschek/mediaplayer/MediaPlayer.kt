@@ -1,7 +1,6 @@
 package de.paul_woitaschek.mediaplayer
 
 import android.net.Uri
-import java.io.File
 import java.io.IOException
 
 
@@ -19,11 +18,6 @@ interface MediaPlayer {
   fun start()
 
   fun pause()
-
-  @Throws(IOException::class)
-  fun prepare(file: File)
-
-  fun prepareAsync(file: File)
 
   @Throws(IOException::class)
   fun prepare(uri: Uri)

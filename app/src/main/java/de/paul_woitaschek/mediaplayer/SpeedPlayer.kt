@@ -8,7 +8,6 @@ import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
 import de.paul_woitaschek.mediaplayer.internals.Sonic
-import java.io.File
 import java.io.IOException
 import java.util.*
 import java.util.concurrent.Executors
@@ -312,20 +311,6 @@ class SpeedPlayer(private val context: Context) : MediaPlayer {
   }
 
   @Throws(IOException::class)
-  override fun prepare(file: File) {
-    errorInWrongState(validStatesForPrepare, "prepare")
-
-    this.uri = Uri.fromFile(file)
-
-    try {
-      internalPrepare()
-    } catch(e: IOException) {
-      error()
-      throw IOException(e)
-    }
-  }
-
-  @Throws(IOException::class)
   override fun prepare(uri: Uri) {
     errorInWrongState(validStatesForPrepare, "prepare")
 
@@ -336,21 +321,6 @@ class SpeedPlayer(private val context: Context) : MediaPlayer {
     } catch(e: IOException) {
       error()
       throw IOException(e)
-    }
-  }
-
-  override fun prepareAsync(file: File) {
-    errorInWrongState(validStatesForPrepare, "prepareAsync")
-
-    this.uri = Uri.fromFile(file)
-
-    state = State.PREPARING
-    thread(isDaemon = true) {
-      try {
-        internalPrepare()
-      } catch(e: IOException) {
-        error()
-      }
     }
   }
 

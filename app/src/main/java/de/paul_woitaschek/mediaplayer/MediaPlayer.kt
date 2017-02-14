@@ -24,6 +24,8 @@ interface MediaPlayer {
 
   fun seekTo(to: Int)
 
+  fun setAudioStreamType(streamType: Int)
+
   fun setVolume(volume: Float)
 
   fun setWakeMode(mode: Int)

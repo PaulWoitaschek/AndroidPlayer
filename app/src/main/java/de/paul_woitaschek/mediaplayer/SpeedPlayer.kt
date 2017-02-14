@@ -59,6 +59,7 @@ class SpeedPlayer(private val context: Context) : MediaPlayer {
   private var extractor: MediaExtractor? = null
   private var codec: MediaCodec? = null
   private var uri: Uri? = null
+  private var audioStreamType: Int = AudioManager.STREAM_MUSIC
 
   @Volatile private var continuing = false
   @Volatile private var isDecoding = false
@@ -325,6 +326,10 @@ class SpeedPlayer(private val context: Context) : MediaPlayer {
     }
   }
 
+  override fun setAudioStreamType(streamType: Int) {
+
+  }
+
   override fun setVolume(volume: Float) {
     if (Build.VERSION.SDK_INT >= 21) track?.setVolume(volume)
     else {
@@ -409,7 +414,7 @@ class SpeedPlayer(private val context: Context) : MediaPlayer {
       if (minSize == AudioTrack.ERROR || minSize == AudioTrack.ERROR_BAD_VALUE) {
         throw IOException("getMinBufferSize returned " + minSize)
       }
-      track = AudioTrack(AudioManager.STREAM_MUSIC, sampleRate, format,
+      track = AudioTrack(audioStreamType, sampleRate, format,
         AudioFormat.ENCODING_PCM_16BIT, minSize * 4,
         AudioTrack.MODE_STREAM)
       sonic = Sonic(sampleRate, numChannels)

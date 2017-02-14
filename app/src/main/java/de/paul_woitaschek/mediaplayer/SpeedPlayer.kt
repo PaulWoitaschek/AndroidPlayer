@@ -33,17 +33,15 @@ import kotlin.concurrent.withLock
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-
- * @author James Falcon
- * *
- * @author Paul Woitaschek
+ *
+ * @author James Falcon, Paul Woitaschek
  */
 @TargetApi(16)
 class SpeedPlayer(private val context: Context) : MediaPlayer {
 
-  override var onError: (() -> Unit)? = null
-  override var onCompletion: (() -> Unit)? = null
-  override var onPrepared: (() -> Unit)? = null
+  private var onError: (() -> Unit)? = null
+  private var onCompletion: (() -> Unit)? = null
+  private var onPrepared: (() -> Unit)? = null
   override var playbackSpeed = 1.0f
 
   override var duration: Int = 0
@@ -434,6 +432,18 @@ class SpeedPlayer(private val context: Context) : MediaPlayer {
         wakeLock!!.release()
       }
     }
+  }
+
+  override fun onError(action: (() -> Unit)?) {
+    onError = action
+  }
+
+  override fun onCompletion(action: (() -> Unit)?) {
+    onCompletion = action
+  }
+
+  override fun onPrepared(action: (() -> Unit)?) {
+    onPrepared = action
   }
 
   private fun decode() {

@@ -13,9 +13,9 @@ import android.media.MediaPlayer as AndroidMediaPlayer
  */
 class AndroidPlayer(private val context: Context) : MediaPlayer {
 
-  override var onError: (() -> Unit)? = null
-  override var onCompletion: (() -> Unit)? = null
-  override var onPrepared: (() -> Unit)? = null
+  private var onError: (() -> Unit)? = null
+  private var onCompletion: (() -> Unit)? = null
+  private var onPrepared: (() -> Unit)? = null
 
   private val player = AndroidMediaPlayer()
 
@@ -54,6 +54,18 @@ class AndroidPlayer(private val context: Context) : MediaPlayer {
     }
 
   override fun audioSessionId() = player.audioSessionId
+
+  override fun onError(action: (() -> Unit)?) {
+    onError = action
+  }
+
+  override fun onCompletion(action: (() -> Unit)?) {
+    onCompletion = action
+  }
+
+  override fun onPrepared(action: (() -> Unit)?) {
+    onPrepared = action
+  }
 
   override fun setAudioStreamType(streamType: Int) = player.setAudioStreamType(streamType)
 

@@ -40,9 +40,9 @@ interface MediaPlayer {
 
   var playbackSpeed: Float
 
-  var onError: (() -> Unit)?
+  fun onError(action: (() -> Unit)?)
 
-  var onCompletion: (() -> Unit)?
+  fun onCompletion(action: (() -> Unit)?)
 
-  var onPrepared: (() -> Unit)?
+  fun onPrepared(action: (() -> Unit)?)
 }

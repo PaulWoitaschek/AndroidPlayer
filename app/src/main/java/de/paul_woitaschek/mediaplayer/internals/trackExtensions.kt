@@ -21,8 +21,6 @@ internal fun findFormatFromChannels(numChannels: Int) = when (numChannels) {
   7 -> AudioFormat.CHANNEL_OUT_5POINT1 or AudioFormat.CHANNEL_OUT_BACK_CENTER
   8 -> if (Build.VERSION.SDK_INT >= 23) {
     AudioFormat.CHANNEL_OUT_7POINT1_SURROUND;
-  } else {
-    -1;
-  }
+  } else -1
   else -> -1 // Error
 }

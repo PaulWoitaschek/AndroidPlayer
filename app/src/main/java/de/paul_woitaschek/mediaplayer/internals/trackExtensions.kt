@@ -7,7 +7,7 @@ import android.os.Build
 
 
 @TargetApi(16)
-internal fun MediaFormat.containsKeys(vararg keys: String): Boolean = keys.any { containsKey(it) }
+internal fun MediaFormat.containsKeys(vararg keys: String): Boolean = keys.all { containsKey(it) }
 
 internal fun Sonic.availableBytes() = numChannels * samplesAvailable() * 2
 

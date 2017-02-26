@@ -9,6 +9,7 @@ import java.io.IOException
  *
  * @author Paul Woitaschek
  */
+@Suppress("unused")
 interface MediaPlayer {
 
   fun audioSessionId(): Int

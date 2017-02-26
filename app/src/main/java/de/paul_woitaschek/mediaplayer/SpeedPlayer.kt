@@ -9,9 +9,6 @@ import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
 import de.paul_woitaschek.mediaplayer.internals.Sonic
-import de.paul_woitaschek.mediaplayer.internals.availableBytes
-import de.paul_woitaschek.mediaplayer.internals.containsKeys
-import de.paul_woitaschek.mediaplayer.internals.findFormatFromChannels
 import java.io.IOException
 import java.util.*
 import java.util.concurrent.Executors
@@ -36,6 +33,7 @@ import kotlin.concurrent.withLock
  *
  * @author James Falcon, Paul Woitaschek
  */
+@Suppress("unused")
 @TargetApi(16)
 class SpeedPlayer(private val context: Context) : MediaPlayer {
 
@@ -414,6 +412,24 @@ class SpeedPlayer(private val context: Context) : MediaPlayer {
     }
   }
 
+  private fun Sonic.availableBytes() = numChannels * samplesAvailable() * 2
+
+  private fun MediaFormat.containsKeys(vararg keys: String): Boolean = keys.all { containsKey(it) }
+
+  private fun findFormatFromChannels(numChannels: Int) = when (numChannels) {
+    1 -> AudioFormat.CHANNEL_OUT_MONO
+    2 -> AudioFormat.CHANNEL_OUT_STEREO
+    3 -> AudioFormat.CHANNEL_OUT_STEREO or AudioFormat.CHANNEL_OUT_FRONT_CENTER
+    4 -> AudioFormat.CHANNEL_OUT_QUAD
+    5 -> AudioFormat.CHANNEL_OUT_QUAD or AudioFormat.CHANNEL_OUT_FRONT_CENTER
+    6 -> AudioFormat.CHANNEL_OUT_5POINT1
+    7 -> AudioFormat.CHANNEL_OUT_5POINT1 or AudioFormat.CHANNEL_OUT_BACK_CENTER
+    8 -> if (Build.VERSION.SDK_INT >= 23) {
+      AudioFormat.CHANNEL_OUT_7POINT1_SURROUND
+    } else -1
+    else -> -1 // Error
+  }
+
   @Throws(IOException::class)
   private fun initDevice(sampleRate: Int, numChannels: Int) {
     lock.withLock {
@@ -432,11 +448,11 @@ class SpeedPlayer(private val context: Context) : MediaPlayer {
   }
 
   private fun stayAwake(awake: Boolean) {
-    if (wakeLock != null) {
-      if (awake && !wakeLock!!.isHeld) {
-        wakeLock!!.acquire()
-      } else if (!awake && wakeLock!!.isHeld) {
-        wakeLock!!.release()
+    wakeLock?.let {
+      if (awake && !it.isHeld) {
+        it.acquire()
+      } else if (!awake && it.isHeld) {
+        it.release()
       }
     }
   }

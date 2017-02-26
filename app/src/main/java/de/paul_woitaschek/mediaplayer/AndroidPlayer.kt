@@ -8,10 +8,11 @@ import kotlin.properties.Delegates
 import android.media.MediaPlayer as AndroidMediaPlayer
 
 /**
- * Delegates to android.media.MediaPlayer. Playback speed will be available from api 23 on
+ * Delegates to [android.media.MediaPlayer]. Playback speed will be available from api 23 on
  *
  * @author Paul Woitaschek
  */
+@Suppress("unused")
 class AndroidPlayer(private val context: Context) : MediaPlayer {
 
   private var onError: (() -> Unit)? = null
@@ -55,8 +56,14 @@ class AndroidPlayer(private val context: Context) : MediaPlayer {
 
   private fun applySpeed() {
     if (Build.VERSION.SDK_INT >= 23) {
-      player.playbackParams = PlaybackParams().apply {
-        speed = playbackSpeed
+      try {
+        player.playbackParams = PlaybackParams().apply {
+          speed = playbackSpeed
+        }
+      } catch (e: IllegalStateException) {
+        // there is a bug in AOSP that throws illegal state exceptions randomly.
+        // see https://code.google.com/p/android/issues/detail?id=192135
+        e.printStackTrace()
       }
     }
   }

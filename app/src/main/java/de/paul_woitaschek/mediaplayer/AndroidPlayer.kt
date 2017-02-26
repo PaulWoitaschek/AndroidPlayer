@@ -51,6 +51,8 @@ class AndroidPlayer(private val context: Context) : MediaPlayer {
     if (player.isPlaying) applySpeed()
   }
 
+  override fun release() = player.release()
+
   private fun applySpeed() {
     if (Build.VERSION.SDK_INT >= 23) {
       player.playbackParams = PlaybackParams().apply {

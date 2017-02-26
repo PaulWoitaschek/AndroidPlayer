@@ -24,6 +24,8 @@ interface MediaPlayer {
 
   fun reset()
 
+  fun release()
+
   fun seekTo(to: Int)
 
   fun setAudioStreamType(streamType: Int)

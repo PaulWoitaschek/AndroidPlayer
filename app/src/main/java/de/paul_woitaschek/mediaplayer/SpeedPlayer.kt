@@ -329,6 +329,13 @@ class SpeedPlayer(private val context: Context) : MediaPlayer {
     }
   }
 
+  override fun release() {
+    onError = null
+    onCompletion = null
+    onPrepared = null
+    reset()
+  }
+
   override fun setAudioStreamType(streamType: Int) {
 
   }

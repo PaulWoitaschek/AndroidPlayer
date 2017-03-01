@@ -335,7 +335,7 @@ class SpeedPlayer(private val context: Context) : MediaPlayer {
   }
 
   override fun setAudioStreamType(streamType: Int) {
-
+    audioStreamType = streamType
   }
 
   override fun setVolume(volume: Float) {

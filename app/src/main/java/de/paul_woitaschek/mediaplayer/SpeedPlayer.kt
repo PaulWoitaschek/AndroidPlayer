@@ -101,11 +101,11 @@ class SpeedPlayer(private val context: Context) : MediaPlayer {
           presentationTimeUs = extractor!!.sampleTime
         }
         codec.queueInputBuffer(
-          inputBufIndex,
-          0,
-          sampleSize,
-          presentationTimeUs,
-          if (sawInputEOS) MediaCodec.BUFFER_FLAG_END_OF_STREAM else 0)
+            inputBufIndex,
+            0,
+            sampleSize,
+            presentationTimeUs,
+            if (sawInputEOS) MediaCodec.BUFFER_FLAG_END_OF_STREAM else 0)
         if (flushCodec) {
           codec.flush()
           flushCodec = false
@@ -150,8 +150,8 @@ class SpeedPlayer(private val context: Context) : MediaPlayer {
             val oFormat = codec.outputFormat
 
             initDevice(
-              oFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE),
-              oFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT))
+                oFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE),
+                oFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT))
             outputBuffers = codec.outputBuffers
             track!!.play()
           } catch (e: IOException) {
@@ -370,31 +370,36 @@ class SpeedPlayer(private val context: Context) : MediaPlayer {
   @Throws(IOException::class)
   private fun initStream() {
     lock.withLock {
-      extractor = MediaExtractor()
-      if (uri != null) {
-        extractor!!.setDataSource(context, uri!!, null)
-      } else {
-        error()
-        throw IOException("Error at initializing stream")
-      }
-      val trackNum = 0
-      val oFormat = extractor!!.getTrackFormat(trackNum)
-
-      if (!oFormat.containsKeys(MediaFormat.KEY_SAMPLE_RATE, MediaFormat.KEY_CHANNEL_COUNT, MediaFormat.KEY_MIME, MediaFormat.KEY_DURATION)) {
-        throw IOException("MediaFormat misses keys.")
-      }
-
-      val sampleRate = oFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE)
-      val channelCount = oFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
-      val mime = oFormat.getString(MediaFormat.KEY_MIME)
-      duration = (oFormat.getLong(MediaFormat.KEY_DURATION) / 1000).toInt()
-
-      initDevice(sampleRate, channelCount)
-      extractor!!.selectTrack(trackNum)
-      codec = MediaCodec.createDecoderByType(mime)
-        .apply {
-          configure(oFormat, null, null, 0)
+      extractor = MediaExtractor().also { extractor ->
+        if (uri != null) {
+          extractor.setDataSource(context, uri!!, null)
+        } else {
+          error()
+          throw IOException("Error at initializing stream")
         }
+        if (extractor.trackCount == 0) {
+          error()
+          throw IOException("trackCount is 0")
+        }
+        val trackNum = 0
+        val oFormat = extractor.getTrackFormat(trackNum)
+
+        if (!oFormat.containsKeys(MediaFormat.KEY_SAMPLE_RATE, MediaFormat.KEY_CHANNEL_COUNT, MediaFormat.KEY_MIME, MediaFormat.KEY_DURATION)) {
+          throw IOException("MediaFormat misses keys.")
+        }
+
+        val sampleRate = oFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE)
+        val channelCount = oFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
+        val mime = oFormat.getString(MediaFormat.KEY_MIME)
+        duration = (oFormat.getLong(MediaFormat.KEY_DURATION) / 1000).toInt()
+
+        initDevice(sampleRate, channelCount)
+        extractor.selectTrack(trackNum)
+        codec = MediaCodec.createDecoderByType(mime)
+            .apply {
+              configure(oFormat, null, null, 0)
+            }
+      }
     }
   }
 
@@ -434,15 +439,16 @@ class SpeedPlayer(private val context: Context) : MediaPlayer {
   private fun initDevice(sampleRate: Int, numChannels: Int) {
     lock.withLock {
       val format = findFormatFromChannels(numChannels)
-      val minSize = AudioTrack.getMinBufferSize(sampleRate, format,
-        AudioFormat.ENCODING_PCM_16BIT)
+      val minSize = AudioTrack.getMinBufferSize(sampleRate, format, AudioFormat.ENCODING_PCM_16BIT)
 
       if (minSize == AudioTrack.ERROR || minSize == AudioTrack.ERROR_BAD_VALUE) {
         throw IOException("getMinBufferSize returned " + minSize)
       }
-      track = AudioTrack(audioStreamType, sampleRate, format,
-        AudioFormat.ENCODING_PCM_16BIT, minSize * 4,
-        AudioTrack.MODE_STREAM)
+      track = AudioTrack(
+          audioStreamType, sampleRate, format,
+          AudioFormat.ENCODING_PCM_16BIT, minSize * 4,
+          AudioTrack.MODE_STREAM
+      )
       sonic = Sonic(sampleRate, numChannels)
     }
   }

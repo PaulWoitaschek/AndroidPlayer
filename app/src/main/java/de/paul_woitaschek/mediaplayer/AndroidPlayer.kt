@@ -21,7 +21,7 @@ class AndroidPlayer(private val context: Context) : MediaPlayer {
   private val player = AndroidMediaPlayer()
 
   init {
-    player.setOnErrorListener { mediaPlayer, i, j ->
+    player.setOnErrorListener { _, _, _ ->
       onError?.invoke()
       false
     }
@@ -47,7 +47,7 @@ class AndroidPlayer(private val context: Context) : MediaPlayer {
   override val duration: Int
     get() = player.duration
 
-  override var playbackSpeed by Delegates.observable(1F) { property, old, new ->
+  override var playbackSpeed by Delegates.observable(1F) { _, _, _ ->
     // as setting playback params starts the player, only apply it when its playing
     if (player.isPlaying) applySpeed()
   }

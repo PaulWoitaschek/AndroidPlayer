@@ -238,18 +238,13 @@ class SpeedPlayer(private val context: Context) : MediaPlayer {
       } catch (e: InterruptedException) {
       }
 
-      if (codec != null) {
-        codec!!.release()
-        codec = null
-      }
-      if (extractor != null) {
-        extractor!!.release()
-        extractor = null
-      }
-      if (track != null) {
-        track!!.release()
-        track = null
-      }
+      codec?.release()
+      codec = null
+      extractor?.release()
+      extractor = null
+      track?.release()
+      track = null
+
       state = State.IDLE
     }
   }
@@ -363,8 +358,9 @@ class SpeedPlayer(private val context: Context) : MediaPlayer {
 
   override fun setWakeMode(mode: Int) {
     val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
-    wakeLock = pm.newWakeLock(mode, "CustomPlayer")
-    wakeLock!!.setReferenceCounted(false)
+    wakeLock = pm.newWakeLock(mode, "CustomPlayer").apply {
+      setReferenceCounted(false)
+    }
   }
 
   @Throws(IOException::class)
@@ -444,10 +440,9 @@ class SpeedPlayer(private val context: Context) : MediaPlayer {
       if (minSize == AudioTrack.ERROR || minSize == AudioTrack.ERROR_BAD_VALUE) {
         throw IOException("getMinBufferSize returned " + minSize)
       }
+      track?.release()
       track = AudioTrack(
-          audioStreamType, sampleRate, format,
-          AudioFormat.ENCODING_PCM_16BIT, minSize * 4,
-          AudioTrack.MODE_STREAM
+          audioStreamType, sampleRate, format, AudioFormat.ENCODING_PCM_16BIT, minSize * 4, AudioTrack.MODE_STREAM
       )
       sonic = Sonic(sampleRate, numChannels)
     }

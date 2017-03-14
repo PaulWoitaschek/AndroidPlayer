@@ -4,11 +4,10 @@ import android.content.Context
 import android.media.PlaybackParams
 import android.net.Uri
 import android.os.Build
-import kotlin.properties.Delegates
 import android.media.MediaPlayer as AndroidMediaPlayer
 
 /**
- * Delegates to [android.media.MediaPlayer]. Playback speed will be available from api 23 on
+ * Delegates to [android.media.MediaPlayer]. Playback speed will be available from api 25 on
  *
  * @author Paul Woitaschek
  */
@@ -35,9 +34,6 @@ class AndroidPlayer(private val context: Context) : MediaPlayer {
 
   override fun start() {
     player.start()
-
-    // we might have delayed the speed setting so we apply it now
-    applySpeed()
   }
 
   override fun pause() = player.pause()
@@ -47,26 +43,18 @@ class AndroidPlayer(private val context: Context) : MediaPlayer {
   override val duration: Int
     get() = player.duration
 
-  override var playbackSpeed by Delegates.observable(1F) { _, _, _ ->
-    // as setting playback params starts the player, only apply it when its playing
-    if (player.isPlaying) applySpeed()
-  }
+  override var playbackSpeed: Float = 1F
+    set(value) {
+      // on nougat and below there is a bug that causes an IllegalStateException
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N_MR1) {
+        player.playbackParams = PlaybackParams().apply {
+          speed = value
+        }
+      }
+      field = value
+    }
 
   override fun release() = player.release()
-
-  private fun applySpeed() {
-    if (Build.VERSION.SDK_INT >= 23) {
-      try {
-        player.playbackParams = PlaybackParams().apply {
-          speed = playbackSpeed
-        }
-      } catch (e: IllegalStateException) {
-        // there is a bug in AOSP that throws illegal state exceptions randomly.
-        // see https://code.google.com/p/android/issues/detail?id=192135
-        e.printStackTrace()
-      }
-    }
-  }
 
   override fun audioSessionId() = player.audioSessionId
 

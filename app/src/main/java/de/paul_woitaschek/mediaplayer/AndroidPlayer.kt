@@ -1,13 +1,12 @@
 package de.paul_woitaschek.mediaplayer
 
 import android.content.Context
-import android.media.PlaybackParams
 import android.net.Uri
-import android.os.Build
 import android.media.MediaPlayer as AndroidMediaPlayer
 
 /**
- * Delegates to [android.media.MediaPlayer]. Playback speed will be available from api 25 on
+ * Delegates to [android.media.MediaPlayer]. Playback speed is not available as
+ * [android.media.PlaybackParams] is not reliable. (Still crashes in N_MR1).
  *
  * @author Paul Woitaschek
  */
@@ -44,15 +43,7 @@ class AndroidPlayer(private val context: Context) : MediaPlayer {
     get() = player.duration
 
   override var playbackSpeed: Float = 1F
-    set(value) {
-      // on nougat and below there is a bug that causes an IllegalStateException
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N_MR1) {
-        player.playbackParams = PlaybackParams().apply {
-          speed = value
-        }
-      }
-      field = value
-    }
+    get() = 1F
 
   override fun release() = player.release()
 

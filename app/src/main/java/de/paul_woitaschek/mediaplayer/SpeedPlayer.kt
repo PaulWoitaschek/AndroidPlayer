@@ -269,7 +269,7 @@ class SpeedPlayer(private val context: Context) : MediaPlayer {
               track!!.flush()
               flushCodec = true
               val internalTo = to.toLong() * 1000
-              extractor!!.seekTo(internalTo, MediaExtractor.SEEK_TO_CLOSEST_SYNC)
+              extractor!!.seekTo(internalTo, MediaExtractor.SEEK_TO_NEXT_SYNC)
             }
           }
         }

@@ -1,4 +1,10 @@
-# Android Speed Player
+# DEPRECATED
+
+This project is no longer maintained. As of Version 2.4, [ExoPlayer](https://github.com/google/ExoPlayer) supports custom playback speed. 
+
+And it is not such a awful state machine as the Android MediaPlayer.
+
+# <s>Android Speed Player</s>
 [![CI Status](https://circleci.com/gh/PaulWoitaschek/AndroidPlayer.svg?&style=shield&circle-token=1454603ba135969d542753f427043ee815f626f9)](https://circleci.com/gh/PaulWoitaschek/AndroidPlayer)
 
 This player is a MediaPlayer abstraction for Android. It mimics but simplifies the Android [MediaPlayer](https://developer.android.com/reference/android/media/MediaPlayer.html) through the usage of [Kotlin](https://kotlinlang.org/).  
